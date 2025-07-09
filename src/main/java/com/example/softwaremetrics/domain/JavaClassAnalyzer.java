@@ -29,13 +29,51 @@ public class JavaClassAnalyzer {
     private static final Logger logger = LoggerFactory.getLogger(JavaClassAnalyzer.class);
 
     private static final List<String> JAVA_NATIVE_PACKAGES = Arrays.asList(
-        "java.", "javax.", "sun.", "com.sun.", "org.w3c.", "org.xml."
+            "java.",             // Core Java
+            "javax.",            // Java EE legacy
+            "jakarta.",          // Jakarta EE modern
+            "sun.", "com.sun.",  // JDK internal
+            "org.w3c.",          // W3C DOM
+            "org.xml.",          // XML APIs
+            "org.omg.",          // CORBA
+            "org.ietf.",         // Internet standards
+            "jdk.",              // JDK modules
+            "org.apache.xerces.",// XML parser
+            "org.relaxng."       // XML schema
+    );
+
+    private static final List<String> JAVA_EXTERNAL_PACKAGES = Arrays.asList(
+            "org.springframework.", // Spring Framework
+            "org.apache.",          // Apache Commons
+            "com.google.common.",   // Google Guava
+            "org.junit.",           // JUnit testing framework
+            "org.mockito.",         // Mockito for mocking
+            "org.slf4j.",           // SLF4J logging
+            "org.logback.",         // Logback logging
+            "org.hibernate.",       // Hibernate ORM
+            "com.fasterxml.jackson.", // Jackson for JSON processing
+            "com.google.api", // Google APIs
+            "org.assertj.",          // AssertJ for fluent assertions
+            "org.aspectj.",          // AspectJ for AOP
+            "io.micrometer.",        // Micrometer for metrics,
+            "io.swagger.",           // Swagger for API documentation
+            "io.jsonwebtoken.", // JSON Web Token
+            "org.json.", // JSON.org for JSON processing
+            "com.google.zxing.", // ZXing for barcode processing
+            "com.google.auth."
     );
 
     private static final Set<String> BASIC_TYPES = new HashSet<>(Arrays.asList(
-        "boolean", "byte", "char", "short", "int", "long", "float", "double", "void"
-    ));
+            // Primitive types
+            "boolean", "byte", "char", "short", "int", "long", "float", "double", "void",
 
+            // Boxed types
+            "java.lang.Boolean", "java.lang.Byte", "java.lang.Character", "java.lang.Short",
+            "java.lang.Integer", "java.lang.Long", "java.lang.Float", "java.lang.Double", "java.lang.Void",
+
+            // Common types
+            "java.lang.String", "java.lang.Object", "java.lang.Class"
+    ));
     /**
      * Checks whether the given file contains the @SpringBootApplication annotation.
      *
@@ -100,6 +138,8 @@ public class JavaClassAnalyzer {
             String topLevelPackage = extractTopLevelPackageFrom(packageName, modulePackages);
 
             if (topLevelPackage == null) return;
+            if (classNode.name.endsWith("Builder")) return;
+            if (className.contains("$")) return; // Skip inner classes
 
             logger.trace("Analyzing class: {}", className);
             totalClassCount.merge(topLevelPackage, 1, Integer::sum);
@@ -113,6 +153,8 @@ public class JavaClassAnalyzer {
             }
 
             for (String dependency : dependencies) {
+                if (dependency.endsWith("Builder")) continue;
+                if (dependency.contains("$")) continue; // Skip inner classes
                 String dependencyPackage = getPackageName(dependency);
                 String dependencyTopLevelPackage = extractTopLevelPackageFrom(dependencyPackage, modulePackages);
                 if (!topLevelPackage.equals(dependencyTopLevelPackage) && !isExcludedDependency(dependency)) {
@@ -129,15 +171,38 @@ public class JavaClassAnalyzer {
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean isExcludedDependency(String dependency) {
-        return isJavaNativePackage(dependency) || isBasicType(dependency);
+        return isJavaNativePackage(dependency) || isBasicType(dependency)
+                || isJavaExternalPackage(dependency);
     }
 
     private boolean isJavaNativePackage(String packageName) {
         return JAVA_NATIVE_PACKAGES.stream().anyMatch(packageName::startsWith);
     }
 
+    private boolean isJavaExternalPackage(String packageName) {
+        return JAVA_EXTERNAL_PACKAGES.stream().anyMatch(packageName::startsWith);
+    }
+
+
     private boolean isBasicType(String typeName) {
         return BASIC_TYPES.contains(typeName) || BASIC_TYPES.contains(getPackageName(typeName));
+    }
+
+    private void addDependencyIfNotExcludedDescriptor(Set<String> dependencies, String descriptor) {
+        String className = normalizeArrayType(descriptor);
+        if (!isExcludedDependency(className)) {
+            dependencies.add(className);
+        }
+    }
+
+    private String normalizeArrayType(String rawType) {
+        while (rawType.startsWith("[")) {
+            rawType = rawType.substring(1);
+        }
+        if (rawType.startsWith("L") && rawType.endsWith(";")) {
+            rawType = rawType.substring(1, rawType.length() - 1);
+        }
+        return rawType.replace('/', '.');
     }
 
     private void analyzeDependencies(MethodNode method, Set<String> dependencies) {
@@ -149,6 +214,12 @@ public class JavaClassAnalyzer {
         for (Type paramType : Type.getArgumentTypes(method.desc)) {
             addDependencyIfNotExcluded(dependencies, paramType.getClassName());
         }
+
+//        for (Type paramType : Type.getArgumentTypes(method.desc)) {
+//            addDependencyIfNotExcludedDescriptor(dependencies, paramType.getDescriptor());
+//        }
+
+
 
         // Analyze exceptions
         method.exceptions.forEach(exception -> {
@@ -179,8 +250,27 @@ public class JavaClassAnalyzer {
         }
     }
 
+    private String normalizeArrayClassName(String rawType) {
+        if (rawType == null) return "";
+
+        // Nếu là descriptor (ASM format), như: [B, [Ljava/lang/String;
+        if (rawType.startsWith("[")) {
+            return normalizeArrayType(rawType); // đã xử lý từ descriptor format
+        }
+
+        // Nếu là kiểu Java: byte[], java.lang.String[], int[][]
+        while (rawType.endsWith("[]")) {
+            rawType = rawType.substring(0, rawType.length() - 2);
+        }
+
+        return rawType;
+    }
+
     private void addDependencyIfNotExcluded(Set<String> dependencies, String dependency) {
-        if (!isExcludedDependency(dependency)) {
+        logger.info("before normalized dependency: {}", dependency);
+        String normalized = normalizeArrayClassName(dependency);
+        logger.info("after normalized dependency: {}", normalized);
+        if (!isExcludedDependency(normalized)) {
             dependencies.add(dependency);
         }
     }

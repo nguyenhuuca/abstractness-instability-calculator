@@ -114,24 +114,149 @@
                             ctx.fill();
                         };
 
+                        const drawTriangleByValue = (chart, x0, y0, x1, y1, x2, y2, color) => {
+                            const ctx = chart.ctx;
+                            const xAxis = chart.scales.x;
+                            const yAxis = chart.scales.y;
+
+                            ctx.beginPath();
+                            ctx.moveTo(xAxis.getPixelForValue(x0), yAxis.getPixelForValue(y0));
+                            ctx.lineTo(xAxis.getPixelForValue(x1), yAxis.getPixelForValue(y1));
+                            ctx.lineTo(xAxis.getPixelForValue(x2), yAxis.getPixelForValue(y2));
+                            ctx.closePath();
+                            ctx.fillStyle = color;
+                            ctx.fill();
+                        };
+                        const drawSafeZone = (chart, tolerance, color) => {
+                            const ctx = chart.ctx;
+                            const xAxis = chart.scales.x;
+                            const yAxis = chart.scales.y;
+                            const { left, top, right, bottom } = chart.chartArea;
+
+                            const step = 0.01;
+                            const epsilon = 0.002;
+
+                            const lower = [];
+                            for (let x = 0; x <= 1; x += step) {
+                                let y = 1 - tolerance - x;
+                                y = Math.max(-epsilon, Math.min(1 + epsilon, y));
+                                lower.push({ x, y });
+                            }
+
+                            const upper = [];
+                            for (let x = 1; x >= 0; x -= step) {
+                                let y = 1 + tolerance - x;
+                                y = Math.max(-epsilon, Math.min(1 + epsilon, y));
+                                upper.push({ x, y });
+                            }
+
+                            // ✅ Thêm điểm đầu và cuối thủ công
+                            lower.unshift({ x: 0, y: 1 }); // Đảm bảo dính sát mép trên bên trái
+                            upper.push({ x: 1, y: 0 });    // Đảm bảo dính sát đáy dưới bên phải
+
+                            const allPoints = lower.concat(upper);
+
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.rect(left, top, right - left, bottom - top);
+                            ctx.clip();
+
+                            ctx.beginPath();
+                            for (let i = 0; i < allPoints.length; i++) {
+                                const px = xAxis.getPixelForValue(allPoints[i].x);
+                                const py = yAxis.getPixelForValue(allPoints[i].y);
+                                if (i === 0) ctx.moveTo(px, py);
+                                else ctx.lineTo(px, py);
+                            }
+                            ctx.closePath();
+                            ctx.fillStyle = color;
+                            ctx.fill();
+                            ctx.restore();
+                        };
+
+                        const drawWarningZonePartial = (chart, dMin, dMax, color) => {
+                            const ctx = chart.ctx;
+                            const xAxis = chart.scales.x;
+                            const yAxis = chart.scales.y;
+                            const { left, top, right, bottom } = chart.chartArea;
+
+                            const step = 0.005;
+
+                            const drawStrip = (lowerFn, upperFn) => {
+                                const lower = [];
+                                const upper = [];
+
+                                for (let x = 0; x <= 1; x += step) {
+                                    const yLower = lowerFn(x);
+                                    const yUpper = upperFn(x);
+                                    if (yLower >= 0 && yLower <= 1)
+                                        lower.push({ x, y: yLower });
+                                    if (yUpper >= 0 && yUpper <= 1)
+                                        upper.unshift({ x, y: yUpper });
+                                }
+
+                                // Nối vùng
+                                const all = lower.concat(upper);
+
+                                ctx.beginPath();
+                                for (let i = 0; i < all.length; i++) {
+                                    const px = xAxis.getPixelForValue(all[i].x);
+                                    const py = yAxis.getPixelForValue(all[i].y);
+                                    if (i === 0) ctx.moveTo(px, py);
+                                    else ctx.lineTo(px, py);
+                                }
+                                ctx.closePath();
+                                ctx.fill();
+                            };
+
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.rect(left, top, right - left, bottom - top);
+                            ctx.clip();
+
+                            ctx.fillStyle = color;
+
+                            // Bên trái: D ∈ [0.2, 0.6] → A + I ∈ [0.4, 0.8]
+                            drawStrip(
+                                x => 0.4 - x,
+                                x => 0.8 - x
+                            );
+
+                            // Bên phải: D ∈ [0.2, 0.6] → A + I ∈ [1.2, 1.6]
+                            drawStrip(
+                                x => 1.2 - x,
+                                x => 1.6 - x
+                            );
+
+                            ctx.restore();
+                        };
                         // Zone of Pain (bottom-left corner)
                         const painCenterX = xAxis.getPixelForValue(0);
                         const painCenterY = yAxis.getPixelForValue(0);
                         const painRadius = xAxis.getPixelForValue(0.4) - painCenterX;
-                        drawSemicircle(painCenterX, painCenterY, painRadius, 3*Math.PI/2, 0, 'rgba(231, 76, 60, 0.1)');
+                        // drawSemicircle(painCenterX, painCenterY, painRadius, 3*Math.PI/2, 0, 'rgba(231, 76, 60, 0.1)');
+                        drawTriangleByValue(chart, 0, 0, 0.4, 0, 0, 0.4, 'rgba(231, 76, 60, 0.1)');
 
                         // Zone of Uselessness (top-right corner)
                         const uselessCenterX = xAxis.getPixelForValue(1);
                         const uselessCenterY = yAxis.getPixelForValue(1);
-                        const uselessRadius = uselessCenterX - xAxis.getPixelForValue(0.6);
-                        drawSemicircle(uselessCenterX, uselessCenterY, uselessRadius, 2*Math.PI, Math.PI, 'rgba(52, 152, 219, 0.1)');
+                        const uselessRadius =  uselessCenterX - xAxis.getPixelForValue(0.6);
+                        // drawSemicircle(uselessCenterX, uselessCenterY, uselessRadius, 2*Math.PI, Math.PI, 'rgba(52, 152, 219, 0.1)');
+                        drawTriangleByValue(chart, 1, 1, 0.6, 1, 1, 0.6, 'rgba(52, 152, 219, 0.1)');
 
+                        drawSafeZone(chart, 0.2, 'rgba(46, 204, 113, 0.1)'); // vùng |D| <= 0.2
+                        drawWarningZonePartial(chart, 0.2, 0.6, 'rgba(243, 156, 18, 0.15)');
                         // Labels
                         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
                         ctx.font = '14px Roboto';
                         ctx.textAlign = 'center';
                         ctx.fillText('Zone of Pain', xAxis.getPixelForValue(0.15), yAxis.getPixelForValue(0.15));
                         ctx.fillText('Zone of Uselessness', xAxis.getPixelForValue(0.85), yAxis.getPixelForValue(0.85));
+
+                        ctx.fillText('Warning Zone', xAxis.getPixelForValue(0.3), yAxis.getPixelForValue(0.3));
+                        ctx.fillText('Warning Zone', xAxis.getPixelForValue(0.6), yAxis.getPixelForValue(0.8));
+
+                        ctx.fillText('Safe Zone', xAxis.getPixelForValue(0.3), yAxis.getPixelForValue(0.6));
                     }
                 };
 
