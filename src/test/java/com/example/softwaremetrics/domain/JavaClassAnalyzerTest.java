@@ -37,6 +37,49 @@ class JavaClassAnalyzerTest {
     }
 
     @Test
+    void testContainsSpringBootApplicationWithAttributes(@TempDir Path tempDir) throws IOException {
+        Path file = tempDir.resolve("App.java");
+        Files.writeString(file, "@SpringBootApplication(scanBasePackages = \"com.example\")\npublic class App {}");
+        assertTrue(javaClassAnalyzer.containsSpringBootApplication(file));
+    }
+
+    @Test
+    void testIgnoresSpringBootApplicationInCommentsAndStrings(@TempDir Path tempDir) throws IOException {
+        // The annotation mentioned only in a Javadoc/comment must not count.
+        Path comment = tempDir.resolve("Commented.java");
+        Files.writeString(comment,
+                "/**\n * Checks for the @SpringBootApplication annotation.\n */\npublic class Commented {}");
+        assertFalse(javaClassAnalyzer.containsSpringBootApplication(comment));
+
+        // The annotation appearing only inside a string literal must not count
+        // (this is what broke scanning of this analyzer's own source).
+        Path stringLiteral = tempDir.resolve("Literal.java");
+        Files.writeString(stringLiteral,
+                "public class Literal {\n    boolean b = line.contains(\"@SpringBootApplication\");\n}");
+        assertFalse(javaClassAnalyzer.containsSpringBootApplication(stringLiteral));
+    }
+
+    @Test
+    void testAnalyzeClassesExcludesCompiledTestClasses(@TempDir Path tempDir) throws IOException {
+        // A main class and a test class for the same package, under Maven output dirs.
+        createTestClass(tempDir.resolve("target/classes"),
+                "com/example/subpackage/Bar.class", "com.example.subpackage.Bar", false, "com.example.subpackage.Bar");
+        createTestClass(tempDir.resolve("target/test-classes"),
+                "com/example/subpackage/FooTest.class", "com.example.subpackage.FooTest", false, "com.example.subpackage.Bar");
+
+        List<String> packages = List.of("com.example.subpackage");
+        Map<String, Set<String>> outgoing = new ConcurrentHashMap<>();
+        Map<String, Set<String>> incoming = new ConcurrentHashMap<>();
+        Map<String, Integer> abstractCount = new HashMap<>();
+        Map<String, Integer> totalCount = new HashMap<>();
+
+        javaClassAnalyzer.analyzeClasses(tempDir, packages, outgoing, incoming, abstractCount, totalCount);
+
+        // Only Bar (under target/classes) is counted; FooTest under target/test-classes is excluded.
+        assertEquals(1, totalCount.get("com.example.subpackage"));
+    }
+
+    @Test
     void testExtractPackage(@TempDir Path tempDir) throws IOException {
         Path file = tempDir.resolve("TestClass.java");
         Files.writeString(file, "package com.example.test;\npublic class TestClass {}");

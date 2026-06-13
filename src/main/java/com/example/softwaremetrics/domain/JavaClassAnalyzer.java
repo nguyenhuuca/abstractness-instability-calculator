@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /**
@@ -41,13 +42,29 @@ public class JavaClassAnalyzer {
      * @param file the Path to the file to be checked
      * @return true if the file contains the @SpringBootApplication annotation, false otherwise
      */
+    private static final Pattern SPRING_BOOT_APP = Pattern.compile("@SpringBootApplication\\b");
+
     boolean containsSpringBootApplication(Path file) {
         try (Stream<String> lines = Files.lines(file)) {
-            return lines.anyMatch(line -> line.contains("@SpringBootApplication"));
+            return lines.anyMatch(this::isSpringBootApplicationAnnotation);
         } catch (IOException e) {
             logger.error("Error reading file: {}", file, e);
             return false;
         }
+    }
+
+    /**
+     * Detects a real {@code @SpringBootApplication} annotation usage, ignoring occurrences inside
+     * comments or string literals so the main package isn't picked from a file that merely
+     * mentions the annotation in text (e.g. this analyzer's own source).
+     */
+    private boolean isSpringBootApplicationAnnotation(String line) {
+        String trimmed = line.trim();
+        if (trimmed.startsWith("*") || trimmed.startsWith("//") || trimmed.startsWith("/*")) {
+            return false; // comment line
+        }
+        String code = trimmed.replaceAll("\"(\\\\.|[^\"\\\\])*\"", ""); // drop string literals
+        return SPRING_BOOT_APP.matcher(code).find();
     }
 
     String extractPackage(Path file) {
@@ -81,7 +98,10 @@ public class JavaClassAnalyzer {
     }
 
     private boolean isNotTestClass(Path path) {
-        return !path.toString().contains("target/test-classes");
+        String p = path.toString().replace('\\', '/'); // normalize Windows separators
+        return !p.contains("/target/test-classes/")        // Maven
+            && !p.contains("/build/classes/java/test/")    // Gradle (Java)
+            && !p.contains("/build/classes/kotlin/test/"); // Gradle (Kotlin)
     }
 
     private void analyzeClassFile(Path file, List<String> modulePackages,
