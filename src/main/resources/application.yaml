@@ -5,6 +5,17 @@ logging:
 
 
 instability-calculator:
+  # Quality gates for the CLI / CI mode (java -jar ... --scan=<path>). Each gate is independent.
+  gate:
+    max-package-distance:   # fail if any package's distance from the main sequence exceeds threshold
+      enabled: true
+      threshold: 0.7
+    forbidden-zones:        # fail if any package falls in the Zone of Pain or Zone of Uselessness
+      enabled: false
+    max-average-distance:   # fail if the average distance across packages exceeds threshold
+      enabled: false
+      threshold: 0.5
+
   native-packages:
     disabled: true
     values:

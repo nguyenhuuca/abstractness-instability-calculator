@@ -57,6 +57,44 @@ Dependency Visualization
 
 5. View the results in the interactive scatter plot
 
+> The web UI also exposes `GET /api/metrics?path=<project-path>`, which returns the metrics as a
+> JSON envelope (`generatedAt`, `projectPath`, `toolVersion`, `packageCount`, `summary`, `packages`)
+> for archival or verification by another system.
+
+## CI / CLI usage
+
+Run the analyzer headless (no web server) to gate a build on architecture quality. Remember the
+target project must be **compiled** first (the tool reads `.class` bytecode).
+
+```
+java -jar target/abstractness-instability-calculator-1.0-SNAPSHOT.jar \
+     --scan=/path/to/project [--fail-on-distance=0.7] [--output=metrics.json]
+```
+
+- Prints the JSON metrics envelope (with a `gate` section) to stdout, or to `--output=<file>`.
+- Exit code: `0` = all gates passed, `1` = a gate was violated, `2` = scan error.
+
+Quality gates are configured under `instability-calculator.gate` in `application.yaml` (each gate is
+independent and can be enabled/disabled):
+
+| Gate | Fails the build when… |
+|------|------------------------|
+| `max-package-distance` | any package's distance `D` exceeds `threshold` (default `0.7`) |
+| `forbidden-zones` | any package falls in the Zone of Pain or Zone of Uselessness |
+| `max-average-distance` | the average `D` across packages exceeds `threshold` |
+
+`--fail-on-distance=<d>` enables and overrides the per-package distance threshold from the command line.
+
+Example GitHub Actions step:
+
+```yaml
+- name: Architecture quality gate
+  run: |
+    mvn -B -q clean package -DskipTests
+    java -jar target/abstractness-instability-calculator-1.0-SNAPSHOT.jar \
+         --scan="$GITHUB_WORKSPACE" --fail-on-distance=0.7
+```
+
 ## Nix Flake
 
 1. Enter development environment

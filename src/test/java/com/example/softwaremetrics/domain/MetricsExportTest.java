@@ -3,6 +3,7 @@ package com.example.softwaremetrics.domain;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,5 +47,19 @@ class MetricsExportTest {
         assertThat(export.summary().wellDesigned()).isZero();
         assertThat(export.summary().needsAttention()).isZero();
         assertThat(export.summary().averageDistance()).isZero();
+    }
+
+    @Test
+    void gateIsNullByDefaultAndAttachedByWithGate() {
+        MetricsExport export = MetricsExport.from("/p", "1.0-TEST", Map.of());
+        assertThat(export.gate()).isNull();
+
+        GateResult gate = new GateResult(false, List.of(
+                new GateResult.Violation("maxPackageDistance", "a", 0.8, 0.7, "msg")));
+        MetricsExport withGate = export.withGate(gate);
+
+        assertThat(withGate.gate()).isSameAs(gate);
+        assertThat(withGate.packageCount()).isEqualTo(export.packageCount());
+        assertThat(export.gate()).isNull(); // original unchanged
     }
 }

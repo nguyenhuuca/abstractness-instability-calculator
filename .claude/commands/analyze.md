@@ -1,6 +1,6 @@
 ---
-description: Compile a target Java/Spring Boot project, then scan it with the metrics calculator
-argument-hint: <path-to-target-project>
+description: Compile a target Java/Spring Boot project, then scan it with the headless CLI
+argument-hint: <path-to-target-project> [--fail-on-distance=<d>]
 ---
 
 Analyze the abstractness/instability metrics of the project at: **$ARGUMENTS**
@@ -8,13 +8,20 @@ Analyze the abstractness/instability metrics of the project at: **$ARGUMENTS**
 This calculator reads **compiled `.class` bytecode**, not source — so the target project MUST be compiled first or the scan returns empty metrics.
 
 Steps:
-1. Verify the path `$ARGUMENTS` exists and contains a `src/main/java` directory with an `@SpringBootApplication` class. If not, stop and tell the user why.
-2. Detect the target's build tool and compile it so `target/` (Maven) or `build/` (Gradle) is populated:
-   - Maven (`pom.xml`): `mvn -q -f "$ARGUMENTS/pom.xml" clean compile`
-   - Gradle (`build.gradle`/`build.gradle.kts`): `gradle -p "$ARGUMENTS" classes` (or the wrapper)
-3. Build this calculator if needed and start it on a free port (e.g. `--server.port=8099`), running in the background. Wait until `http://localhost:<port>/` responds.
-4. POST the scan: `curl -s -X POST "http://localhost:<port>/scan" --data-urlencode "path=$ARGUMENTS"`.
-5. Summarize the returned metrics for the user (packages found, which are in the Safe zone vs. need attention, notable Zone of Pain / Uselessness packages). If they want to explore visually, point them to the running URL.
-6. Stop the background app and clean up any temp files when done.
+1. Verify the target path exists and contains a `src/main/java` directory with an `@SpringBootApplication` class. If not, stop and tell the user why.
+2. Compile the target so its bytecode exists:
+   - Maven (`pom.xml`): `mvn -q -f "<path>/pom.xml" clean compile`
+   - Gradle (`build.gradle`/`.kts`): `gradle -p "<path>" classes` (or the wrapper)
+3. Build this calculator if needed: `mvn -q clean package -DskipTests`.
+4. Run the **headless CLI** against the target (no web server needed):
+   ```
+   java -jar target/abstractness-instability-calculator-1.0-SNAPSHOT.jar --scan="<path>"
+   ```
+   Add `--fail-on-distance=<d>` if the user passed one, and `--output=<file>` if they want the JSON saved.
+5. Read the JSON envelope from stdout (or the output file) and summarize: packages found, the `summary`
+   (well-designed vs. needs-attention, average distance), any `gate` violations, and the process exit code
+   (`0` passed / `1` gate violated / `2` scan error).
+6. If the user wants the interactive chart instead, mention they can run the app without `--scan` and open
+   `http://localhost:8081`.
 
 If the scan returns no packages, the most likely cause is that the target was not compiled — re-check step 2.
