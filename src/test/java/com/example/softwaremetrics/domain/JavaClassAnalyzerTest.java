@@ -22,7 +22,7 @@ class JavaClassAnalyzerTest {
 
     @BeforeEach
     void setUp() {
-        javaClassAnalyzer = new JavaClassAnalyzer();
+        javaClassAnalyzer = new JavaClassAnalyzer(TestProperties.defaults());
     }
 
     @Test

@@ -29,7 +29,7 @@ class PackageMetricsCalculatorTest {
 
     @BeforeEach
     void setUp() {
-        calculator = new PackageMetricsCalculator(new JavaClassAnalyzer());
+        calculator = new PackageMetricsCalculator(new JavaClassAnalyzer(TestProperties.defaults()));
         logger.info("Set up PackageMetricsCalculator for testing");
     }
 

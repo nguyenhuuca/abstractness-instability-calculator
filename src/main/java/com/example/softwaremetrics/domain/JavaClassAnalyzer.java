@@ -9,7 +9,6 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -28,10 +27,13 @@ import java.util.stream.Stream;
 @Component
 public class JavaClassAnalyzer {
 
-    @Autowired
-    InstabilityCalculatorProperties props;
+    private final InstabilityCalculatorProperties props;
 
     private static final Logger logger = LoggerFactory.getLogger(JavaClassAnalyzer.class);
+
+    public JavaClassAnalyzer(InstabilityCalculatorProperties props) {
+        this.props = props;
+    }
 
     /**
      * Checks whether the given file contains the @SpringBootApplication annotation.
