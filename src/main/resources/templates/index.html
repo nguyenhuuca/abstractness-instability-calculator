@@ -199,6 +199,15 @@
             margin: 28px auto 0;
             padding: 0 20px;
         }
+        .tab-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        #exportJsonBtn { padding: 11px 22px; }
         .tabs {
             display: inline-flex;
             gap: 6px;
@@ -467,9 +476,12 @@
     </div>
 
     <div id="tabContainer">
-        <div class="tabs">
-            <button class="tab active" onclick="openTab(event, 'metricsTab')"><i class="fas fa-chart-scatter"></i> Metrics Chart</button>
-            <button class="tab" onclick="openTab(event, 'packageDependenciesTab')"><i class="fas fa-share-nodes"></i> Dependency Visualization</button>
+        <div class="tab-header">
+            <div class="tabs">
+                <button class="tab active" onclick="openTab(event, 'metricsTab')"><i class="fas fa-chart-scatter"></i> Metrics Chart</button>
+                <button class="tab" onclick="openTab(event, 'packageDependenciesTab')"><i class="fas fa-share-nodes"></i> Dependency Visualization</button>
+            </div>
+            <button id="exportJsonBtn" class="scan-btn" onclick="exportMetricsJson()"><i class="fas fa-download"></i> Export JSON</button>
         </div>
 
         <div id="metricsTab" class="tab-content active">
@@ -515,8 +527,49 @@
         function showTabs() {
             document.getElementById('loadingSpinner').style.display = 'none';
             document.getElementById('tabContainer').style.display = 'block';
+            window.scannedPath = document.getElementById('path').value;
             updateSummaryStats();
             populatePackageDropdown();
+        }
+
+        // Build the same JSON envelope as GET /api/metrics from the already-loaded scan
+        // results and download it as a file (no re-scan needed).
+        function exportMetricsJson() {
+            const metrics = window.metricsData || {};
+            const entries = Object.values(metrics);
+            if (entries.length === 0) {
+                alert('Nothing to export yet — run a scan first.');
+                return;
+            }
+            let wellDesigned = 0, sumD = 0;
+            entries.forEach(m => {
+                const d = (m.distance != null) ? m.distance : 0;
+                sumD += d;
+                if (d <= 0.5) wellDesigned++;
+            });
+            const packageCount = entries.length;
+            const envelope = {
+                generatedAt: new Date().toISOString(),
+                projectPath: window.scannedPath || '',
+                toolVersion: '1.0-SNAPSHOT',
+                packageCount: packageCount,
+                summary: {
+                    wellDesigned: wellDesigned,
+                    needsAttention: packageCount - wellDesigned,
+                    averageDistance: Math.round((sumD / packageCount) * 100) / 100
+                },
+                packages: metrics
+            };
+
+            const blob = new Blob([JSON.stringify(envelope, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `metrics-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         function updateSummaryStats() {
