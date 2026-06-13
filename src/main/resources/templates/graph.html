@@ -67,6 +67,11 @@
                 const metrics = /*[[${metrics}]]*/ {};
                 window.metricsData = metrics; // Store metrics data globally
                 const ctx = document.getElementById('metricsChart').getContext('2d');
+
+                // Dark theme defaults for the chart
+                Chart.defaults.color = '#cbd5e1';
+                Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.08)';
+                Chart.defaults.font.family = 'Inter';
                 
                 const data = {
                     datasets: [
@@ -76,7 +81,7 @@
                                 { x: 0, y: 1 },
                                 { x: 1, y: 0 }
                             ],
-                            borderColor: 'rgba(99, 102, 241, 0.7)',
+                            borderColor: 'rgba(165, 180, 252, 0.85)',
                             borderWidth: 2,
                             borderDash: [6, 4],
                             pointRadius: 0,
@@ -245,19 +250,19 @@
                         const painCenterY = yAxis.getPixelForValue(0);
                         const painRadius = xAxis.getPixelForValue(0.4) - painCenterX;
                         // drawSemicircle(painCenterX, painCenterY, painRadius, 3*Math.PI/2, 0, 'rgba(231, 76, 60, 0.1)');
-                        drawTriangleByValue(chart, 0, 0, 0.4, 0, 0, 0.4, 'rgba(231, 76, 60, 0.1)');
+                        drawTriangleByValue(chart, 0, 0, 0.4, 0, 0, 0.4, 'rgba(248, 113, 113, 0.18)');
 
                         // Zone of Uselessness (top-right corner)
                         const uselessCenterX = xAxis.getPixelForValue(1);
                         const uselessCenterY = yAxis.getPixelForValue(1);
                         const uselessRadius =  uselessCenterX - xAxis.getPixelForValue(0.6);
                         // drawSemicircle(uselessCenterX, uselessCenterY, uselessRadius, 2*Math.PI, Math.PI, 'rgba(52, 152, 219, 0.1)');
-                        drawTriangleByValue(chart, 1, 1, 0.6, 1, 1, 0.6, 'rgba(52, 152, 219, 0.1)');
+                        drawTriangleByValue(chart, 1, 1, 0.6, 1, 1, 0.6, 'rgba(96, 165, 250, 0.18)');
 
-                        drawSafeZone(chart, 0.2, 'rgba(46, 204, 113, 0.1)'); // vùng |D| <= 0.2
-                        drawWarningZonePartial(chart, 0.2, 0.6, 'rgba(243, 156, 18, 0.15)');
+                        drawSafeZone(chart, 0.2, 'rgba(52, 211, 153, 0.16)'); // vùng |D| <= 0.2
+                        drawWarningZonePartial(chart, 0.2, 0.6, 'rgba(251, 191, 36, 0.16)');
                         // Labels
-                        ctx.fillStyle = 'rgba(51, 65, 85, 0.65)';
+                        ctx.fillStyle = 'rgba(226, 232, 240, 0.85)';
                         ctx.font = '600 13px Inter';
                         ctx.textAlign = 'center';
                         ctx.fillText('Zone of Pain', xAxis.getPixelForValue(0.15), yAxis.getPixelForValue(0.15));

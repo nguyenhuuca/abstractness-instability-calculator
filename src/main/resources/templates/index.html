@@ -15,19 +15,20 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <style>
         :root {
-            --bg-1: #0f172a;
-            --bg-2: #1e1b4b;
-            --accent: #6366f1;
-            --accent-2: #a855f7;
-            --accent-grad: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-            --text: #1e293b;
-            --text-muted: #64748b;
-            --card: rgba(255, 255, 255, 0.85);
-            --border: rgba(148, 163, 184, 0.25);
-            --green: #10b981;
-            --red: #ef4444;
-            --amber: #f59e0b;
-            --shadow: 0 10px 30px -10px rgba(2, 6, 23, 0.25);
+            --bg-1: #050507;
+            --bg-2: #0d0d14;
+            --accent: #818cf8;
+            --accent-2: #c084fc;
+            --accent-grad: linear-gradient(135deg, #818cf8 0%, #c084fc 100%);
+            --text: #e5e7eb;
+            --text-muted: #9ca3af;
+            --surface: #101018;
+            --card: rgba(255, 255, 255, 0.04);
+            --border: rgba(255, 255, 255, 0.09);
+            --green: #34d399;
+            --red: #f87171;
+            --amber: #fbbf24;
+            --shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.7);
         }
 
         * { box-sizing: border-box; }
@@ -40,9 +41,9 @@
             padding: 0 0 60px;
             min-height: 100vh;
             background:
-                radial-gradient(1200px 600px at 10% -10%, rgba(99, 102, 241, 0.35), transparent 60%),
-                radial-gradient(1000px 500px at 100% 0%, rgba(168, 85, 247, 0.30), transparent 55%),
-                linear-gradient(160deg, #f8fafc 0%, #eef2ff 100%);
+                radial-gradient(1200px 600px at 10% -10%, rgba(129, 140, 248, 0.18), transparent 60%),
+                radial-gradient(1000px 500px at 100% 0%, rgba(192, 132, 252, 0.16), transparent 55%),
+                linear-gradient(160deg, #050507 0%, #0d0d14 60%, #08080d 100%);
             background-attachment: fixed;
         }
 
@@ -69,7 +70,7 @@
             font-weight: 800;
             margin: 0 0 12px;
             letter-spacing: -0.02em;
-            background: linear-gradient(135deg, #1e293b 0%, #4338ca 60%, #a855f7 100%);
+            background: linear-gradient(135deg, #f8fafc 0%, #a5b4fc 55%, #c084fc 100%);
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -124,13 +125,15 @@
             border-radius: 12px;
             font-size: 15px;
             font-family: inherit;
-            background: #fff;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text);
             transition: border-color .2s, box-shadow .2s;
         }
+        input[type="text"]::placeholder { color: var(--text-muted); }
         input[type="text"]:focus {
             outline: none;
             border-color: var(--accent);
-            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+            box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.2);
         }
         button.scan-btn {
             background: var(--accent-grad);
@@ -200,7 +203,7 @@
             display: inline-flex;
             gap: 6px;
             padding: 6px;
-            background: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.04);
             border: 1px solid var(--border);
             border-radius: 14px;
             margin-bottom: 18px;
@@ -238,7 +241,7 @@
         .chart-container {
             flex: 0 0 58%;
             aspect-ratio: 1 / 1;
-            background: #fff;
+            background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 18px;
             box-shadow: var(--shadow);
@@ -246,7 +249,7 @@
         }
         .package-details {
             flex: 1;
-            background: #fff;
+            background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 18px;
             box-shadow: var(--shadow);
@@ -276,7 +279,7 @@
             margin: 8px 0;
             padding: 8px 12px;
             border-radius: 10px;
-            background: #f8fafc;
+            background: rgba(255, 255, 255, 0.04);
         }
         .package-details p strong {
             display: inline-block;
@@ -297,7 +300,8 @@
         .tooltip .tooltiptext {
             visibility: hidden;
             width: 220px;
-            background: #0f172a;
+            background: #1c1c28;
+            border: 1px solid var(--border);
             color: #fff;
             text-align: center;
             border-radius: 10px;
@@ -353,7 +357,10 @@
             border-radius: 8px;
             font-family: inherit;
             font-size: 13px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text);
         }
+        #efferentSearch::placeholder, #afferentSearch::placeholder { color: var(--text-muted); }
         #efferentSearch:focus, #afferentSearch:focus { outline: none; border-color: var(--accent); }
 
         /* ---------- Dependency visualization tab ---------- */
@@ -361,7 +368,8 @@
         .dropdown-container { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-bottom: 20px; }
         .select-wrapper { position: relative; display: inline-block; width: 300px; max-width: 100%; }
         .select-wrapper select {
-            background: #fff;
+            background: var(--surface);
+            color: var(--text);
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 12px 30px 12px 14px;
@@ -371,7 +379,8 @@
             cursor: pointer;
             appearance: none;
         }
-        .select-wrapper select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15); }
+        .select-wrapper select option { background: var(--surface); color: var(--text); }
+        .select-wrapper select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.2); }
         .select-wrapper::after {
             content: "\f078";
             font-family: "Font Awesome 6 Free";
@@ -385,7 +394,7 @@
             color: var(--text-muted);
         }
         #dependencyVisualization {
-            background: #fff;
+            background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 18px;
             box-shadow: var(--shadow);
@@ -636,7 +645,7 @@
                 .text(d => d.id.split('.').pop())
                 .attr("font-size", d => `${Math.max(9, 12 - d.level)}px`)
                 .attr("font-family", "Inter, sans-serif")
-                .attr("fill", "#334155")
+                .attr("fill", "#cbd5e1")
                 .attr("dx", 12)
                 .attr("dy", ".35em");
 
@@ -668,8 +677,10 @@
                 .style("width", "300px")
                 .style("margin-bottom", "12px")
                 .style("padding", "8px 12px")
-                .style("border", "1px solid #e2e8f0")
+                .style("border", "1px solid rgba(255,255,255,0.12)")
                 .style("border-radius", "8px")
+                .style("background", "rgba(255,255,255,0.05)")
+                .style("color", "#e5e7eb")
                 .style("font-family", "Inter, sans-serif")
                 .on("input", function() {
                     const term = this.value.toLowerCase();
@@ -729,7 +740,7 @@
                 .attr("y", 5)
                 .attr("font-family", "Inter, sans-serif")
                 .attr("font-size", "12px")
-                .attr("fill", "#334155")
+                .attr("fill", "#cbd5e1")
                 .text("Selected Package");
 
             legend.append("circle")
@@ -743,7 +754,7 @@
                 .attr("y", 30)
                 .attr("font-family", "Inter, sans-serif")
                 .attr("font-size", "12px")
-                .attr("fill", "#334155")
+                .attr("fill", "#cbd5e1")
                 .text("Dependency");
 
             function drag(simulation) {
