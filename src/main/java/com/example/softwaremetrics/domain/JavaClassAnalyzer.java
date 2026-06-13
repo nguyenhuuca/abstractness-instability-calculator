@@ -3,21 +3,23 @@ package com.example.softwaremetrics.domain;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.signature.SignatureReader;
+import org.objectweb.asm.signature.SignatureVisitor;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
-import java.util.HashSet;
-import java.util.Arrays;
 
 /**
  * JavaClassAnalyzer provides utility methods to analyze Java class files for various metrics
@@ -26,54 +28,11 @@ import java.util.Arrays;
 @Component
 public class JavaClassAnalyzer {
 
+    @Autowired
+    InstabilityCalculatorProperties props;
+
     private static final Logger logger = LoggerFactory.getLogger(JavaClassAnalyzer.class);
 
-    private static final List<String> JAVA_NATIVE_PACKAGES = Arrays.asList(
-            "java.",             // Core Java
-            "javax.",            // Java EE legacy
-            "jakarta.",          // Jakarta EE modern
-            "sun.", "com.sun.",  // JDK internal
-            "org.w3c.",          // W3C DOM
-            "org.xml.",          // XML APIs
-            "org.omg.",          // CORBA
-            "org.ietf.",         // Internet standards
-            "jdk.",              // JDK modules
-            "org.apache.xerces.",// XML parser
-            "org.relaxng."       // XML schema
-    );
-
-    private static final List<String> JAVA_EXTERNAL_PACKAGES = Arrays.asList(
-            "org.springframework.", // Spring Framework
-            "org.apache.",          // Apache Commons
-            "com.google.common.",   // Google Guava
-            "org.junit.",           // JUnit testing framework
-            "org.mockito.",         // Mockito for mocking
-            "org.slf4j.",           // SLF4J logging
-            "org.logback.",         // Logback logging
-            "org.hibernate.",       // Hibernate ORM
-            "com.fasterxml.jackson.", // Jackson for JSON processing
-            "com.google.api", // Google APIs
-            "org.assertj.",          // AssertJ for fluent assertions
-            "org.aspectj.",          // AspectJ for AOP
-            "io.micrometer.",        // Micrometer for metrics,
-            "io.swagger.",           // Swagger for API documentation
-            "io.jsonwebtoken.", // JSON Web Token
-            "org.json.", // JSON.org for JSON processing
-            "com.google.zxing.", // ZXing for barcode processing
-            "com.google.auth."
-    );
-
-    private static final Set<String> BASIC_TYPES = new HashSet<>(Arrays.asList(
-            // Primitive types
-            "boolean", "byte", "char", "short", "int", "long", "float", "double", "void",
-
-            // Boxed types
-            "java.lang.Boolean", "java.lang.Byte", "java.lang.Character", "java.lang.Short",
-            "java.lang.Integer", "java.lang.Long", "java.lang.Float", "java.lang.Double", "java.lang.Void",
-
-            // Common types
-            "java.lang.String", "java.lang.Object", "java.lang.Class"
-    ));
     /**
      * Checks whether the given file contains the @SpringBootApplication annotation.
      *
@@ -151,8 +110,12 @@ public class JavaClassAnalyzer {
             for (MethodNode method : classNode.methods) {
                 analyzeDependencies(method, dependencies);
             }
+            analyzeClassSignature(classNode, dependencies);
 
             for (String dependency : dependencies) {
+                if (topLevelPackage.contains("repo")) {
+                    logger.info("test");
+                }
                 if (dependency.endsWith("Builder")) continue;
                 if (dependency.contains("$")) continue; // Skip inner classes
                 String dependencyPackage = getPackageName(dependency);
@@ -176,16 +139,18 @@ public class JavaClassAnalyzer {
     }
 
     private boolean isJavaNativePackage(String packageName) {
-        return JAVA_NATIVE_PACKAGES.stream().anyMatch(packageName::startsWith);
+        if (!props.getNativePackages().isDisabled()) return false;
+        return props.getNativePackages().getValues().stream().anyMatch(packageName::startsWith);
     }
 
     private boolean isJavaExternalPackage(String packageName) {
-        return JAVA_EXTERNAL_PACKAGES.stream().anyMatch(packageName::startsWith);
+        if (!props.getExternalPackages().isDisabled()) return false;
+        return props.getExternalPackages().getValues().stream().anyMatch(packageName::startsWith);
     }
 
-
     private boolean isBasicType(String typeName) {
-        return BASIC_TYPES.contains(typeName) || BASIC_TYPES.contains(getPackageName(typeName));
+        if (!props.getBasicTypes().isDisabled()) return false;
+        return props.getBasicTypes().getValues().contains(typeName) || props.getBasicTypes().getValues().contains(getPackageName(typeName));
     }
 
     private void addDependencyIfNotExcludedDescriptor(Set<String> dependencies, String descriptor) {
@@ -205,6 +170,20 @@ public class JavaClassAnalyzer {
         return rawType.replace('/', '.');
     }
 
+    private void analyzeClassSignature(ClassNode classNode, Set<String> dependencies) {
+        if (classNode.signature == null) return;
+
+        SignatureReader reader = new SignatureReader(classNode.signature);
+        reader.accept(new SignatureVisitor(Opcodes.ASM9) {
+            @Override
+            public void visitClassType(String name) {
+                String className = name.replace('/', '.');
+                addDependencyIfNotExcluded(dependencies, className);
+                super.visitClassType(name);
+            }
+        });
+    }
+
     private void analyzeDependencies(MethodNode method, Set<String> dependencies) {
         // Analyze method signature
         Type returnType = Type.getReturnType(method.desc);
@@ -214,12 +193,6 @@ public class JavaClassAnalyzer {
         for (Type paramType : Type.getArgumentTypes(method.desc)) {
             addDependencyIfNotExcluded(dependencies, paramType.getClassName());
         }
-
-//        for (Type paramType : Type.getArgumentTypes(method.desc)) {
-//            addDependencyIfNotExcludedDescriptor(dependencies, paramType.getDescriptor());
-//        }
-
-
 
         // Analyze exceptions
         method.exceptions.forEach(exception -> {
