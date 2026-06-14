@@ -9,6 +9,7 @@ import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.LookupSwitchInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
@@ -228,6 +229,23 @@ public class JavaClassAnalyzer {
                 collectRawReferences(method, typeRefs, methodRefs);
                 hasMain = hasMain || isMainMethod(method);
             }
+
+            // Superclass, implemented interfaces, and field types are references too — without these,
+            // an interface used only via `implements` / field injection looks unused (dead-code false positive).
+            if (classNode.superName != null) {
+                typeRefs.add(Type.getObjectType(classNode.superName).getClassName());
+            }
+            if (classNode.interfaces != null) {
+                for (String itf : classNode.interfaces) {
+                    typeRefs.add(Type.getObjectType(itf).getClassName());
+                }
+            }
+            if (classNode.fields != null) {
+                for (FieldNode field : classNode.fields) {
+                    typeRefs.add(stripArraySuffix(Type.getType(field.desc).getClassName()));
+                }
+            }
+
             boolean entryPoint = hasMain || hasEntryAnnotation(classNode);
 
             Set<String> firstPartyClassRefs = new LinkedHashSet<>();

@@ -1,5 +1,8 @@
 package com.example.softwaremetrics.domain;
 
+import com.example.softwaremetrics.domain.deadcode.DeadCodeDetector;
+import com.example.softwaremetrics.domain.deadcode.DeadCodeResult;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -151,6 +154,54 @@ class JavaClassAnalyzerTest {
         assertFalse(controller.entryPoint());
         assertTrue(controller.firstPartyClassRefs().contains("com.app.service.FooService"));
         assertTrue(controller.typeRefs().contains("com.app.service.FooService"));
+    }
+
+    @Test
+    void implementedInterfaceCountsAsReferenced(@TempDir Path tempDir) throws IOException {
+        writeInterface(tempDir, "com/app/service/InviteService.class", "com.app.service.InviteService");
+        writeImplementingClass(tempDir, "com/app/service/impl/InviteServiceImpl.class",
+                "com.app.service.impl.InviteServiceImpl", "com.app.service.InviteService");
+
+        List<ClassInfo> model = javaClassAnalyzer.analyzeProject(tempDir, "com.app");
+
+        ClassInfo impl = model.stream()
+                .filter(c -> c.fqcn().endsWith("InviteServiceImpl"))
+                .findFirst().orElseThrow();
+        assertTrue(impl.firstPartyClassRefs().contains("com.app.service.InviteService"),
+                "the implemented interface must be a reference");
+
+        // and therefore the interface is NOT reported as dead code
+        DeadCodeResult dead = new DeadCodeDetector().detect(model);
+        assertFalse(dead.unusedClasses().contains("com.app.service.InviteService"));
+    }
+
+    private void writeInterface(Path baseDir, String classPath, String className) throws IOException {
+        ClassWriter cw = new ClassWriter(0);
+        cw.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE,
+                className.replace('.', '/'), null, "java/lang/Object", null);
+        cw.visitEnd();
+        writeBytes(baseDir, classPath, cw.toByteArray());
+    }
+
+    private void writeImplementingClass(Path baseDir, String classPath, String className, String interfaceName) throws IOException {
+        ClassWriter cw = new ClassWriter(0);
+        cw.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC, className.replace('.', '/'), null, "java/lang/Object",
+                new String[]{interfaceName.replace('.', '/')});
+        MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
+        mv.visitCode();
+        mv.visitVarInsn(Opcodes.ALOAD, 0);
+        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        mv.visitInsn(Opcodes.RETURN);
+        mv.visitMaxs(1, 1);
+        mv.visitEnd();
+        cw.visitEnd();
+        writeBytes(baseDir, classPath, cw.toByteArray());
+    }
+
+    private void writeBytes(Path baseDir, String classPath, byte[] bytes) throws IOException {
+        Path full = baseDir.resolve(classPath);
+        Files.createDirectories(full.getParent());
+        Files.write(full, bytes);
     }
 
     @Test
