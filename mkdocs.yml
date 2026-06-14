@@ -63,3 +63,4 @@ nav:
   - Reference:
       - Project Structure: project-structure.md
       - Contributing: contributing.md
+      - Web UI: web-ui.md
