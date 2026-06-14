@@ -5,7 +5,7 @@
 # so `mvn deploy` would fail. Triggered manually only — re-enable the `release` trigger once
 # GitHub Packages is configured.
 
-name: Maven Package
+name: Publish to GitHub Packages
 
 on:
   workflow_dispatch:

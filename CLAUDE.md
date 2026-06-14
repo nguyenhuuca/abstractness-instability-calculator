@@ -65,7 +65,7 @@ Follow these when adding features or making changes so contributions stay consis
 - **UI changes** live in `web/src/main/resources/templates/` (`index.html` = shell/styles, `graph.html` = chart + details fragment). Keep the dark theme palette (CSS variables in `index.html`) and the existing element IDs the htmx/Chart.js/D3 scripts depend on (`#result`, `#tabContainer`, `#packageSelect`, `metricsChart`, etc.).
 - **Don't break the bytecode contract.** Anything that reads the target project assumes compiled `.class` files — never switch to source parsing for metrics. New exclusion entries go in `application.yaml` (mind the inverted `disabled` flag, above).
 - **Verify end-to-end** for non-trivial changes with `/demo` (scan this repo) or `/analyze <path>` (scan an external project) before committing.
-- **Branch & PR**: branch off `main`, keep commits scoped, and end commit messages with the `Co-Authored-By` trailer. CI (`.github/workflows/maven.yml`) runs `mvn -B package` on JDK 22 — make sure it passes locally.
+- **Branch & PR**: branch off `main`, keep commits scoped, and end commit messages with the `Co-Authored-By` trailer. CI (`.github/workflows/ci.yml`) runs `mvn -B package` on JDK 22 — make sure it passes locally.
 
 ## Notes
 
