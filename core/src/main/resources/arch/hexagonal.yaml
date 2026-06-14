@@ -1,0 +1,26 @@
+# Hexagonal / Ports & Adapters: adapters depend inward on the application, which depends on the
+# domain core. The domain depends on nothing outward.
+name: Hexagonal (Ports & Adapters)
+
+components:
+  - name: Domain
+    matches: ['.*\.domain(\..*)?$', '.*\.model(\..*)?$']
+  - name: Application
+    matches: ['.*\.application(\..*)?$', '.*\.port(\..*)?$', '.*\.usecase(\..*)?$', '.*\.service(\..*)?$']
+  - name: Adapter
+    matches:
+      - '.*\.adapter(\..*)?$'
+      - '.*\.infrastructure(\..*)?$'
+      - '.*\.web(\..*)?$'
+      - '.*\.controller(\..*)?$'
+      - '.*\.repository(\..*)?$'
+      - '.*\.repo(\..*)?$'
+
+access:
+  Adapter:     [Application, Domain]
+  Application: [Domain]
+  Domain:      []
+
+options:
+  ignoreUnmatched: true
+  forbidCycles: true

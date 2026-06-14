@@ -82,11 +82,21 @@ java -jar core/target/aic-cli.jar \
      --scan=/path/to/project [--fail-on-distance=0.7] [--no-cycles] [--output=metrics.json]
 ```
 
-The CLI is a lean, Spring-free jar (~2.5 MB) that starts in well under a second — no web server is
+The CLI is a lean, Spring-free jar (~2.8 MB) that starts in well under a second — no web server is
 started.
 
 - Prints the JSON metrics envelope (with a `gate` section) to stdout, or to `--output=<file>`.
 - Exit code: `0` = all gates passed, `1` = a gate was violated, `2` = scan error.
+
+**Options and their defaults when omitted:**
+
+| Flag | Default if not passed | Effect |
+|------|------------------------|--------|
+| `--scan=<path>` | *(required)* | project to analyze; must be compiled |
+| `--output=<file>` | print JSON to **stdout** | write the JSON envelope to a file instead |
+| `--fail-on-distance=<d>` | **`0.7`** (the `max-package-distance` gate is **on** by default) | enable & set the per-package distance threshold |
+| `--no-cycles` | **off** | also fail on any package dependency cycle |
+| `--arch=<template\|file>` | **no** architecture check | enforce an architecture spec |
 
 The CLI's quality gates default in code (`max-package-distance` @ 0.7 enabled, the rest off) and are
 overridden by flags (`--fail-on-distance`, `--no-cycles`). The available gates:
@@ -100,6 +110,52 @@ overridden by flags (`--fail-on-distance`, `--no-cycles`). The available gates:
 
 The JSON envelope also includes a `cycles` array (each entry is a group of packages that form a
 dependency cycle), and the web UI shows a warning banner listing them after a scan.
+
+### Architecture conformance (`--arch`)
+
+Enforce architecture rules from a YAML spec — a project that breaks them fails the build:
+
+```
+java -jar core/target/aic-cli.jar --scan=<proj> --arch=layered          # built-in template
+java -jar core/target/aic-cli.jar --scan=<proj> --arch=./my-arch.yaml    # your own rules
+```
+
+Built-in templates: `layered`, `hexagonal`, `onion`. A spec defines **components** (a layer or a
+module, matched by class-name regex) and the rules between them — an `access` allow-list, explicit
+`forbidden` edges, per-component `naming` patterns, and `forbidCycles`. Example:
+
+```yaml
+name: Layered
+components:
+  - name: Web
+    matches: ['.*\.controller(\..*)?$', '.*\.web(\..*)?$']
+  - name: Service
+    matches: ['.*\.service(\..*)?$']
+  - name: Repository
+    matches: ['.*\.repository(\..*)?$', '.*\.repo(\..*)?$']
+  - name: Domain
+    matches: ['.*\.domain(\..*)?$', '.*\.model(\..*)?$']
+access:
+  Web:        [Service, Domain]
+  Service:    [Repository, Domain]
+  Repository: [Domain]
+  Domain:     []
+options:
+  ignoreUnmatched: true
+  forbidCycles: true
+```
+
+All spec sections are optional except `components`. Defaults when omitted:
+
+| Spec field | Default |
+|------------|---------|
+| `access` | no allow-list (a component may depend on anything, subject to `forbidden`) |
+| `forbidden` | none |
+| `naming` | none |
+| `options.ignoreUnmatched` | `true` (classes not matching any component are skipped) |
+| `options.forbidCycles` | `false` |
+
+The result appears under `architecture` in the JSON envelope; any violation makes the process exit `1`.
 
 `--fail-on-distance=<d>` enables and overrides the per-package distance threshold from the command line.
 

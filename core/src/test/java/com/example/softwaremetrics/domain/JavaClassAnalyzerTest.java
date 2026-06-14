@@ -132,6 +132,29 @@ class JavaClassAnalyzerTest {
         assertFalse(outgoingDependencies.get("com.example.anothersubpackage").contains("java.lang.String"));
     }
 
+    @Test
+    void testBuildClassDependencyGraph(@TempDir Path tempDir) throws IOException {
+        // FooController -> FooService -> FooRepo (FooRepo only depends on java.lang, which is excluded)
+        createTestClass(tempDir, "com/app/web/FooController.class", "com.app.web.FooController", false, "com.app.service.FooService");
+        createTestClass(tempDir, "com/app/service/FooService.class", "com.app.service.FooService", false, "com.app.repo.FooRepo");
+        createTestClassWithJavaLangDependency(tempDir, "com/app/repo/FooRepo.class", "com.app.repo.FooRepo", false);
+
+        Map<String, Set<String>> graph = javaClassAnalyzer.buildClassDependencyGraph(tempDir, "com.app");
+
+        // Every first-party class is a node, even one with no first-party dependencies.
+        assertTrue(graph.containsKey("com.app.web.FooController"));
+        assertTrue(graph.containsKey("com.app.service.FooService"));
+        assertTrue(graph.containsKey("com.app.repo.FooRepo"));
+
+        // First-party edges are captured...
+        assertTrue(graph.get("com.app.web.FooController").contains("com.app.service.FooService"));
+        assertTrue(graph.get("com.app.service.FooService").contains("com.app.repo.FooRepo"));
+
+        // ...and excluded / external dependencies (java.lang.String) are not.
+        assertFalse(graph.get("com.app.repo.FooRepo").contains("java.lang.String"));
+        assertFalse(graph.containsKey("java.lang.String"));
+    }
+
     private void createTestClass(Path baseDir, String classPath, String className, boolean isAbstract, String dependencyClass) throws IOException {
         ClassWriter cw = new ClassWriter(0);
         cw.visit(Opcodes.V1_8, isAbstract ? Opcodes.ACC_PUBLIC + Opcodes.ACC_ABSTRACT : Opcodes.ACC_PUBLIC, 

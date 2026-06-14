@@ -24,7 +24,16 @@ public class CycleDetector {
      * Empty when the package graph is acyclic.
      */
     public List<List<String>> findCycles(Map<String, PackageMetrics> metrics) {
-        Map<String, List<String>> graph = buildPackageGraph(metrics);
+        return cyclesInGraph(buildPackageGraph(metrics));
+    }
+
+    /**
+     * Finds dependency cycles in an arbitrary directed graph (node -&gt; nodes it depends on) via
+     * Tarjan's SCC. Returns each strongly-connected component of size &gt;= 2 as a sorted list, with
+     * the groups in deterministic order. Shared by the package-level cycle gate and the architecture
+     * checker.
+     */
+    public static List<List<String>> cyclesInGraph(Map<String, List<String>> graph) {
         return new Tarjan(graph).stronglyConnectedComponents().stream()
                 .filter(scc -> scc.size() >= 2)
                 .map(scc -> scc.stream().sorted().toList())

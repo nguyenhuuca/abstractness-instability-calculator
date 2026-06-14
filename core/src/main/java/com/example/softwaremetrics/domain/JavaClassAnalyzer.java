@@ -13,7 +13,9 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -93,6 +95,63 @@ public class JavaClassAnalyzer {
             logger.error("Error while analyzing classes for {}", projectPath, e);
             throw new IllegalStateException(e);
         }
+    }
+
+    /**
+     * Builds a first-party class dependency graph for architecture checking: maps each project class
+     * (FQCN starting with {@code mainPackage}) to the set of project classes it depends on. Every
+     * first-party class appears as a key (possibly with an empty set) so naming rules can cover it.
+     * Reuses the same ASM dependency extraction as the metrics pass.
+     */
+    public Map<String, Set<String>> buildClassDependencyGraph(Path projectPath, String mainPackage) {
+        Map<String, Set<String>> graph = new HashMap<>();
+        String prefix = mainPackage + ".";
+        try (var walk = Files.walk(projectPath)) {
+            walk.filter(Files::isRegularFile)
+                    .filter(p -> p.toString().endsWith(".class"))
+                    .filter(this::isNotTestClass)
+                    .forEach(file -> collectClassEdges(file, prefix, graph));
+        } catch (IOException e) {
+            logger.error("Error building class dependency graph for {}", projectPath, e);
+            throw new IllegalStateException(e);
+        }
+        return graph;
+    }
+
+    private void collectClassEdges(Path file, String firstPartyPrefix, Map<String, Set<String>> graph) {
+        try {
+            ClassReader classReader = new ClassReader(Files.newInputStream(file));
+            ClassNode classNode = new ClassNode();
+            classReader.accept(classNode, 0);
+
+            String className = Type.getObjectType(classNode.name).getClassName();
+            if (!className.startsWith(firstPartyPrefix)) return;
+            if (className.contains("$")) return; // skip inner classes
+
+            Set<String> dependencies = new HashSet<>();
+            for (MethodNode method : classNode.methods) {
+                analyzeDependencies(method, dependencies);
+            }
+            analyzeClassSignature(classNode, dependencies);
+
+            Set<String> firstPartyDeps = graph.computeIfAbsent(className, k -> new LinkedHashSet<>());
+            for (String dependency : dependencies) {
+                String dep = stripArraySuffix(dependency);
+                if (dep.contains("$") || dep.equals(className)) continue;
+                if (dep.startsWith(firstPartyPrefix) && !isExcludedDependency(dep)) {
+                    firstPartyDeps.add(dep);
+                }
+            }
+        } catch (IOException e) {
+            logger.error("Error reading class file: {}", file, e);
+        }
+    }
+
+    private String stripArraySuffix(String type) {
+        while (type.endsWith("[]")) {
+            type = type.substring(0, type.length() - 2);
+        }
+        return type;
     }
 
     private boolean isNotTestClass(Path path) {

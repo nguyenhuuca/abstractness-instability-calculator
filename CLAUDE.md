@@ -24,6 +24,8 @@ The web app serves on **port 8081** (set in `web/.../application.yaml`; README's
 
 **Headless / CI mode:** `core/target/aic-cli.jar --scan=<path>` runs a one-shot scan with **no Spring and no web server** (entry point `cli.CliMain`, which wires the core POJOs by hand), prints the JSON metrics envelope, evaluates the quality gates, and exits `0` (passed) / `1` (gate violated) / `2` (scan error). The CLI's gate config defaults in code (`config/Defaults`) and is overridden by flags (`--fail-on-distance`, `--no-cycles`); gate logic is `GateConfig` → `ThresholdEvaluator`. `CycleDetector` (Tarjan SCC over the package dependency graph) finds circular dependencies; cycles appear in the JSON envelope (`cycles`) and as a banner in the web UI.
 
+**Architecture checking (`--arch=<template|file.yaml>`):** `domain/arch/` holds a YAML-driven conformance engine — `ArchSpecLoader` loads a built-in template (`core/src/main/resources/arch/{layered,hexagonal,onion}.yaml`) or a user file; `ArchSpec` models components (matched by class-name regex) plus access/forbidden/naming/cycle rules; `ArchChecker` validates the first-party class graph from `JavaClassAnalyzer.buildClassDependencyGraph` (reuses the shared `CycleDetector.cyclesInGraph` Tarjan). Result is attached to the envelope (`architecture`) and a violation makes the CLI exit `1`. Web UI display is not wired yet.
+
 ### Tests
 
 ```bash

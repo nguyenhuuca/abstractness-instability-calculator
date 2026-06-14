@@ -1,0 +1,24 @@
+# Classic layered architecture: Web -> Service -> Repository -> Domain.
+# A component is matched by fully-qualified class name patterns (regex).
+name: Layered
+
+components:
+  - name: Web
+    matches: ['.*\.controller(\..*)?$', '.*\.web(\..*)?$', '.*\.rest(\..*)?$']
+  - name: Service
+    matches: ['.*\.service(\..*)?$', '.*\.application(\..*)?$']
+  - name: Repository
+    matches: ['.*\.repository(\..*)?$', '.*\.repo(\..*)?$', '.*\.dao(\..*)?$']
+  - name: Domain
+    matches: ['.*\.domain(\..*)?$', '.*\.model(\..*)?$', '.*\.entity(\..*)?$']
+
+# Allow-list: each component may depend ONLY on the listed components.
+access:
+  Web:        [Service, Domain]
+  Service:    [Repository, Domain]
+  Repository: [Domain]
+  Domain:     []
+
+options:
+  ignoreUnmatched: true
+  forbidCycles: true

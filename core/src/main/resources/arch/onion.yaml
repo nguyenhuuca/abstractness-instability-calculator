@@ -1,0 +1,25 @@
+# Onion / Clean architecture: dependencies point inward only. Infrastructure -> Application -> Domain.
+name: Onion / Clean
+
+components:
+  - name: Domain
+    matches: ['.*\.domain(\..*)?$', '.*\.model(\..*)?$', '.*\.entity(\..*)?$']
+  - name: Application
+    matches: ['.*\.application(\..*)?$', '.*\.service(\..*)?$', '.*\.usecase(\..*)?$']
+  - name: Infrastructure
+    matches:
+      - '.*\.infrastructure(\..*)?$'
+      - '.*\.web(\..*)?$'
+      - '.*\.controller(\..*)?$'
+      - '.*\.repository(\..*)?$'
+      - '.*\.repo(\..*)?$'
+      - '.*\.config(\..*)?$'
+
+access:
+  Infrastructure: [Application, Domain]
+  Application:    [Domain]
+  Domain:         []
+
+options:
+  ignoreUnmatched: true
+  forbidCycles: true
