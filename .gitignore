@@ -29,6 +29,9 @@ bash.exe.stackdump
 metrics.json
 metrics-*.json
 
+# Local-only notes / backlog
+IDEAS.md
+
 ### Maven template
 target/
 pom.xml.tag

@@ -49,6 +49,17 @@ public class ThresholdEvaluator {
             }
         }
 
+        if (cfg.maxComplexityEnabled()) {
+            for (PackageMetrics m : metrics.values()) {
+                if (m.getMaxComplexity() > cfg.maxComplexity()) {
+                    violations.add(new GateResult.Violation(
+                            "maxComplexity", m.getPackageName(), m.getMaxComplexity(), cfg.maxComplexity(),
+                            String.format("Package '%s' has a method (%s) with cyclomatic complexity %d > %d",
+                                    m.getPackageName(), m.getMostComplexMethod(), m.getMaxComplexity(), cfg.maxComplexity())));
+                }
+            }
+        }
+
         if (cfg.noCyclesEnabled() && cycles != null) {
             for (List<String> cycle : cycles) {
                 violations.add(new GateResult.Violation(

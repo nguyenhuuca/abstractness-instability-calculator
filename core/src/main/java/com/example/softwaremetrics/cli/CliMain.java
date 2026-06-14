@@ -4,6 +4,7 @@ import com.example.softwaremetrics.application.SpringBootPackageScanner;
 import com.example.softwaremetrics.config.CheckConfig;
 import com.example.softwaremetrics.config.CheckConfigLoader;
 import com.example.softwaremetrics.config.Defaults;
+import com.example.softwaremetrics.domain.ClassInfo;
 import com.example.softwaremetrics.domain.CycleDetector;
 import com.example.softwaremetrics.domain.GateResult;
 import com.example.softwaremetrics.domain.JavaClassAnalyzer;
@@ -16,6 +17,9 @@ import com.example.softwaremetrics.domain.ThresholdEvaluator;
 import com.example.softwaremetrics.domain.arch.ArchChecker;
 import com.example.softwaremetrics.domain.arch.ArchResult;
 import com.example.softwaremetrics.domain.arch.ArchSpec;
+import com.example.softwaremetrics.domain.banned.BannedApiChecker;
+import com.example.softwaremetrics.domain.deadcode.DeadCodeDetector;
+import com.example.softwaremetrics.domain.deadcode.DeadCodeResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.nio.file.Files;
@@ -78,6 +82,24 @@ public final class CliMain {
                 export = export.withArchitecture(arch);
             }
 
+            // Banned-API gate + dead-code report (share one project-model pass).
+            List<GateResult.Violation> bannedViolations = List.of();
+            DeadCodeResult deadCode = null;
+            if (!config.bannedApis().isEmpty() || config.deadCodeEnabled()) {
+                String mainPackage = locator.findMainPackage(projectPath);
+                if (mainPackage != null && !mainPackage.isEmpty()) {
+                    List<ClassInfo> model = analyzer.analyzeProject(projectPath, mainPackage);
+                    if (!config.bannedApis().isEmpty()) {
+                        bannedViolations = new BannedApiChecker().check(model, config.bannedApis());
+                        export = export.withBannedApis(bannedViolations);
+                    }
+                    if (config.deadCodeEnabled()) {
+                        deadCode = new DeadCodeDetector().detect(model);
+                        export = export.withDeadCode(deadCode);
+                    }
+                }
+            }
+
             String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(export);
             if (parsed.outputFile != null) {
                 Files.writeString(Path.of(parsed.outputFile), json);
@@ -87,8 +109,12 @@ public final class CliMain {
             }
             printSummary(gateResult);
             printArchSummary(arch);
+            printBannedSummary(bannedViolations);
+            printDeadCodeSummary(deadCode);
 
-            boolean ok = gateResult.passed() && (arch == null || arch.compliant());
+            boolean ok = gateResult.passed()
+                    && (arch == null || arch.compliant())
+                    && bannedViolations.isEmpty();
             System.exit(ok ? 0 : 1);
         } catch (IllegalArgumentException | IllegalStateException e) {
             System.err.println("Scan failed: " + e.getMessage());
@@ -129,6 +155,27 @@ public final class CliMain {
                 + arch.violations().size() + " violation(s):");
         for (ArchResult.Violation v : arch.violations()) {
             System.err.println("  - " + v.message());
+        }
+    }
+
+    private static void printBannedSummary(List<GateResult.Violation> violations) {
+        if (violations.isEmpty()) {
+            return;
+        }
+        System.err.println("Banned-API check FAILED with " + violations.size() + " violation(s):");
+        for (GateResult.Violation v : violations) {
+            System.err.println("  - " + v.message());
+        }
+    }
+
+    private static void printDeadCodeSummary(DeadCodeResult deadCode) {
+        if (deadCode == null || deadCode.unusedClasses().isEmpty()) {
+            return;
+        }
+        System.err.println("Dead-code report (report-only): " + deadCode.unusedClasses().size()
+                + " potentially unused class(es):");
+        for (String c : deadCode.unusedClasses()) {
+            System.err.println("  - " + c);
         }
     }
 

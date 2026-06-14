@@ -5,6 +5,7 @@ import com.example.softwaremetrics.domain.GateProperties.ThresholdGate;
 import com.example.softwaremetrics.domain.GateProperties.ToggleGate;
 import com.example.softwaremetrics.domain.arch.ArchSpec;
 import com.example.softwaremetrics.domain.arch.ArchSpecLoader;
+import com.example.softwaremetrics.domain.banned.BannedApiRule;
 
 import org.yaml.snakeyaml.Yaml;
 
@@ -12,7 +13,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Resolves the effective {@link CheckConfig} by layering, lowest to highest precedence:
@@ -46,6 +50,8 @@ public final class CheckConfigLoader {
     public static CheckConfig resolve(Path projectPath, Overrides cli) {
         GateProperties gates = new GateProperties();   // code defaults
         ArchSpec architecture = null;
+        List<BannedApiRule> bannedApis = List.of();
+        boolean deadCodeEnabled = false;
 
         // 2. project aic-check.yaml
         Path file = discover(projectPath);
@@ -53,6 +59,8 @@ public final class CheckConfigLoader {
             Map<String, Object> root = parse(file);
             applyGates(gates, asMap(root.get("gates")));
             architecture = architectureFrom(asMap(root.get("architecture")));
+            bannedApis = bannedApisFrom(asMap(root.get("banned-apis")));
+            deadCodeEnabled = sectionEnabled(asMap(root.get("dead-code")));
         }
 
         // 3. CLI flags (highest precedence)
@@ -68,7 +76,7 @@ public final class CheckConfigLoader {
             architecture = ArchSpecLoader.load(o.archRef());
         }
 
-        return new CheckConfig(gates.toConfig(), architecture);
+        return new CheckConfig(gates.toConfig(), architecture, bannedApis, deadCodeEnabled);
     }
 
     /** Returns the first existing {@code aic-check.yaml} candidate under the project, or null. */
@@ -106,6 +114,54 @@ public final class CheckConfigLoader {
         applyGate(gates.getForbiddenZones(), g.get("forbidden-zones"));
         applyGate(gates.getMaxAverageDistance(), g.get("max-average-distance"));
         applyGate(gates.getNoCycles(), g.get("no-cycles"));
+        applyGate(gates.getMaxComplexity(), g.get("max-complexity"));
+    }
+
+    private static boolean sectionEnabled(Map<String, Object> section) {
+        return section != null && bool(section.get("enabled"), false);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<BannedApiRule> bannedApisFrom(Map<String, Object> section) {
+        if (!sectionEnabled(section)) {
+            return List.of();
+        }
+        List<BannedApiRule> rules = new ArrayList<>();
+        Object rawRules = section.get("rules");
+        if (rawRules instanceof List<?> list) {
+            for (Object o : list) {
+                Map<String, Object> rm = asMap(o);
+                if (rm != null) {
+                    rules.add(toRule(rm));
+                }
+            }
+        }
+        return rules;
+    }
+
+    private static BannedApiRule toRule(Map<String, Object> rm) {
+        BannedApiRule.Kind kind;
+        String target;
+        if (rm.get("method") != null) {
+            kind = BannedApiRule.Kind.METHOD;
+            target = String.valueOf(rm.get("method"));
+        } else if (rm.get("class") != null) {
+            kind = BannedApiRule.Kind.CLASS;
+            target = String.valueOf(rm.get("class"));
+        } else if (rm.get("package") != null) {
+            kind = BannedApiRule.Kind.PACKAGE;
+            target = String.valueOf(rm.get("package"));
+        } else {
+            throw new IllegalArgumentException("banned-apis rule must have one of: class, method, package");
+        }
+        String message = rm.get("message") != null ? String.valueOf(rm.get("message")) : null;
+        List<Pattern> allowedIn = new ArrayList<>();
+        if (rm.get("allowedIn") instanceof List<?> patterns) {
+            for (Object p : patterns) {
+                allowedIn.add(Pattern.compile(String.valueOf(p)));
+            }
+        }
+        return new BannedApiRule(kind, target, message, allowedIn);
     }
 
     private static void applyGate(ToggleGate gate, Object cfg) {

@@ -27,6 +27,24 @@
             <i class="fas fa-circle-check"></i>
             <span th:text="|Architecture '${architecture.specName()}' — all rules passed|">Architecture passed</span>
         </div>
+        <div th:if="${bannedApiViolations != null and !bannedApiViolations.empty}" class="cycle-banner">
+            <div class="cycle-banner-title">
+                <i class="fas fa-ban"></i>
+                <span th:text="|Banned-API violations (${bannedApiViolations.size()})|">Banned-API violations</span>
+            </div>
+            <ul class="cycle-list">
+                <li th:each="v : ${bannedApiViolations}" th:text="${v.message()}">message</li>
+            </ul>
+        </div>
+        <div th:if="${deadCode != null and !deadCode.unusedClasses().isEmpty()}" class="deadcode-banner">
+            <div class="cycle-banner-title">
+                <i class="fas fa-broom"></i>
+                <span th:text="|Potentially unused classes (${deadCode.unusedClasses().size()}) — report only|">Dead code</span>
+            </div>
+            <ul class="cycle-list">
+                <li th:each="c : ${deadCode.unusedClasses()}" th:text="${c}">com.app.Orphan</li>
+            </ul>
+        </div>
         <div class="container">
             <div class="chart-container">
                 <canvas id="metricsChart"></canvas>
@@ -396,6 +414,10 @@
                         <p class="tooltip"><i class="fas fa-location"></i><strong>Distance from Main Sequence (D):</strong> ${details.distance.toFixed(4)}
                             <span class="tooltiptext">The perpendicular distance of a package from the idealized line A + I = 1. D is calculated as D = | A + I - 1 |.</span>
                         </p>
+                        <p class="tooltip"><i class="fas fa-code-branch"></i><strong>Max Complexity:</strong> ${details.maxComplexity}${details.mostComplexMethod ? ' (' + details.mostComplexMethod + ')' : ''}
+                            <span class="tooltiptext">The highest cyclomatic complexity among the package's methods, and the method that has it.</span>
+                        </p>
+                        <p><i class="fas fa-code-branch"></i><strong>Avg Complexity:</strong> ${details.avgComplexity} <span style="opacity:.6">(${details.methodCount} methods)</span></p>
                         <div class="dependencies-container">
                             <h5>Efferent Dependencies</h5>
                             <input type="text" id="efferentSearch" placeholder="Search efferent dependencies..." onkeyup="filterDependencies('efferent')">

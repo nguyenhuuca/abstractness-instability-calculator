@@ -1,6 +1,7 @@
 package com.example.softwaremetrics.domain;
 
 import com.example.softwaremetrics.domain.arch.ArchResult;
+import com.example.softwaremetrics.domain.deadcode.DeadCodeResult;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.time.Instant;
@@ -23,7 +24,9 @@ public record MetricsExport(
         Map<String, PackageMetrics> packages,
         GateResult gate,
         List<List<String>> cycles,
-        ArchResult architecture) {
+        ArchResult architecture,
+        List<GateResult.Violation> bannedApiViolations,
+        DeadCodeResult deadCode) {
 
     /** Aggregate counts derived from the per-package metrics. */
     public record Summary(int wellDesigned, int needsAttention, double averageDistance) {
@@ -31,17 +34,27 @@ public record MetricsExport(
 
     /** Returns a copy of this envelope with the gate evaluation attached. */
     public MetricsExport withGate(GateResult gate) {
-        return new MetricsExport(generatedAt, projectPath, toolVersion, packageCount, summary, packages, gate, cycles, architecture);
+        return new MetricsExport(generatedAt, projectPath, toolVersion, packageCount, summary, packages, gate, cycles, architecture, bannedApiViolations, deadCode);
     }
 
     /** Returns a copy of this envelope with the detected circular-dependency groups attached. */
     public MetricsExport withCycles(List<List<String>> cycles) {
-        return new MetricsExport(generatedAt, projectPath, toolVersion, packageCount, summary, packages, gate, cycles, architecture);
+        return new MetricsExport(generatedAt, projectPath, toolVersion, packageCount, summary, packages, gate, cycles, architecture, bannedApiViolations, deadCode);
     }
 
     /** Returns a copy of this envelope with the architecture-conformance result attached. */
     public MetricsExport withArchitecture(ArchResult architecture) {
-        return new MetricsExport(generatedAt, projectPath, toolVersion, packageCount, summary, packages, gate, cycles, architecture);
+        return new MetricsExport(generatedAt, projectPath, toolVersion, packageCount, summary, packages, gate, cycles, architecture, bannedApiViolations, deadCode);
+    }
+
+    /** Returns a copy of this envelope with banned-API violations attached. */
+    public MetricsExport withBannedApis(List<GateResult.Violation> bannedApiViolations) {
+        return new MetricsExport(generatedAt, projectPath, toolVersion, packageCount, summary, packages, gate, cycles, architecture, bannedApiViolations, deadCode);
+    }
+
+    /** Returns a copy of this envelope with the (report-only) dead-code result attached. */
+    public MetricsExport withDeadCode(DeadCodeResult deadCode) {
+        return new MetricsExport(generatedAt, projectPath, toolVersion, packageCount, summary, packages, gate, cycles, architecture, bannedApiViolations, deadCode);
     }
 
     /**
@@ -72,6 +85,8 @@ public record MetricsExport(
                 packageCount,
                 new Summary(wellDesigned, needsAttention, averageDistance),
                 metrics,
+                null,
+                null,
                 null,
                 null,
                 null);

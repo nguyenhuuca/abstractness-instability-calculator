@@ -42,7 +42,7 @@ class ThresholdEvaluatorTest {
         Map<String, PackageMetrics> metrics = map(
                 pkg("ok", 0.5, 0.5, 0.40),
                 pkg("bad", 0.9, 0.0, 0.80));
-        GateConfig cfg = new GateConfig(true, 0.7, false, false, 0.0, false);
+        GateConfig cfg = new GateConfig(true, 0.7, false, false, 0.0, false, false, 0);
 
         GateResult result = evaluator.evaluate(metrics, List.of(), cfg);
 
@@ -59,7 +59,7 @@ class ThresholdEvaluatorTest {
                 pkg("pain", 0.1, 0.1, 0.80),        // Zone of Pain
                 pkg("useless", 0.9, 0.9, 0.80),     // Zone of Uselessness
                 pkg("fine", 0.5, 0.5, 0.0));        // on the main sequence
-        GateConfig cfg = new GateConfig(false, 0.0, true, false, 0.0, false);
+        GateConfig cfg = new GateConfig(false, 0.0, true, false, 0.0, false, false, 0);
 
         GateResult result = evaluator.evaluate(metrics, List.of(), cfg);
 
@@ -75,7 +75,7 @@ class ThresholdEvaluatorTest {
         Map<String, PackageMetrics> metrics = map(
                 pkg("a", 0.5, 0.5, 0.60),
                 pkg("b", 0.5, 0.5, 0.80)); // avg = 0.70
-        GateConfig cfg = new GateConfig(false, 0.0, false, true, 0.5, false);
+        GateConfig cfg = new GateConfig(false, 0.0, false, true, 0.5, false, false, 0);
 
         GateResult result = evaluator.evaluate(metrics, List.of(), cfg);
 
@@ -92,7 +92,7 @@ class ThresholdEvaluatorTest {
         Map<String, PackageMetrics> metrics = map(
                 pkg("a", 0.4, 0.6, 0.0),
                 pkg("b", 0.6, 0.4, 0.0));
-        GateConfig cfg = new GateConfig(true, 0.7, true, true, 0.5, true);
+        GateConfig cfg = new GateConfig(true, 0.7, true, true, 0.5, true, true, 10);
 
         GateResult result = evaluator.evaluate(metrics, List.of(), cfg);
 
@@ -104,7 +104,7 @@ class ThresholdEvaluatorTest {
     void noCyclesGateFlagsEachCycleGroupWhenEnabled() {
         Map<String, PackageMetrics> metrics = map(pkg("a", 0.5, 0.5, 0.0), pkg("b", 0.5, 0.5, 0.0));
         List<List<String>> cycles = List.of(List.of("a", "b"));
-        GateConfig cfg = new GateConfig(false, 0.0, false, false, 0.0, true);
+        GateConfig cfg = new GateConfig(false, 0.0, false, false, 0.0, true, false, 0);
 
         GateResult result = evaluator.evaluate(metrics, cycles, cfg);
 
@@ -113,7 +113,26 @@ class ThresholdEvaluatorTest {
         assertThat(result.violations().get(0).type()).isEqualTo("circularDependency");
 
         // Same cycles but gate disabled → passes.
-        GateConfig off = new GateConfig(false, 0.0, false, false, 0.0, false);
+        GateConfig off = new GateConfig(false, 0.0, false, false, 0.0, false, false, 0);
         assertThat(evaluator.evaluate(metrics, cycles, off).passed()).isTrue();
+    }
+
+    @Test
+    void maxComplexityGateFlagsPackagesOverThreshold() {
+        PackageMetrics ok = pkg("ok", 0.5, 0.5, 0.0);
+        ok.setMaxComplexity(8);
+        ok.setMostComplexMethod("A#m");
+        PackageMetrics bad = pkg("bad", 0.5, 0.5, 0.0);
+        bad.setMaxComplexity(20);
+        bad.setMostComplexMethod("B#big");
+        Map<String, PackageMetrics> metrics = map(ok, bad);
+        GateConfig cfg = new GateConfig(false, 0.0, false, false, 0.0, false, true, 15);
+
+        GateResult result = evaluator.evaluate(metrics, List.of(), cfg);
+
+        assertThat(result.passed()).isFalse();
+        assertThat(result.violations()).hasSize(1);
+        assertThat(result.violations().get(0).type()).isEqualTo("maxComplexity");
+        assertThat(result.violations().get(0).packageName()).isEqualTo("bad");
     }
 }

@@ -14,6 +14,10 @@ public class PackageMetrics {
     private double abstractness;
     private double instability;
     private double distance;
+    private int methodCount;
+    private double avgComplexity;
+    private int maxComplexity;
+    private String mostComplexMethod;
 
     // Constructor
     public PackageMetrics() {}
@@ -48,4 +52,16 @@ public class PackageMetrics {
 
     public double getDistance() { return distance; }
     public void setDistance(double distance) { this.distance = distance; }
+
+    public int getMethodCount() { return methodCount; }
+    public void setMethodCount(int methodCount) { this.methodCount = methodCount; }
+
+    public double getAvgComplexity() { return avgComplexity; }
+    public void setAvgComplexity(double avgComplexity) { this.avgComplexity = avgComplexity; }
+
+    public int getMaxComplexity() { return maxComplexity; }
+    public void setMaxComplexity(int maxComplexity) { this.maxComplexity = maxComplexity; }
+
+    public String getMostComplexMethod() { return mostComplexMethod; }
+    public void setMostComplexMethod(String mostComplexMethod) { this.mostComplexMethod = mostComplexMethod; }
 }

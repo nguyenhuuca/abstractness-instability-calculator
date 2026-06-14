@@ -47,6 +47,12 @@ project's `aic-check.yaml`, and finally by these flags.
 | `forbidden-zones` | any package falls in the Zone of Pain or Zone of Uselessness |
 | `max-average-distance` | the average `D` across packages exceeds the threshold |
 | `no-cycles` | any circular dependency between packages is detected |
+| `max-complexity` | any method's cyclomatic complexity exceeds the threshold |
+| `banned-apis` | any forbidden class/method/package is referenced (with `allowedIn` exceptions) |
+
+A **dead-code** report (class-level, configured under `dead-code`) is also available but is
+**report-only** — it lists potentially-unused classes without failing the build. See
+[Project Configuration](configuration.md) for the `max-complexity`, `banned-apis`, and `dead-code` schema.
 
 ## GitHub Actions example
 

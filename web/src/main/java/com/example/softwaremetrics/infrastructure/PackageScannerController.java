@@ -3,13 +3,18 @@ package com.example.softwaremetrics.infrastructure;
 import com.example.softwaremetrics.application.SpringBootPackageScanner;
 import com.example.softwaremetrics.config.CheckConfig;
 import com.example.softwaremetrics.config.CheckConfigLoader;
+import com.example.softwaremetrics.domain.ClassInfo;
 import com.example.softwaremetrics.domain.CycleDetector;
+import com.example.softwaremetrics.domain.GateResult;
 import com.example.softwaremetrics.domain.JavaClassAnalyzer;
 import com.example.softwaremetrics.domain.MetricsExport;
 import com.example.softwaremetrics.domain.PackageLocator;
 import com.example.softwaremetrics.domain.PackageMetrics;
 import com.example.softwaremetrics.domain.arch.ArchChecker;
 import com.example.softwaremetrics.domain.arch.ArchResult;
+import com.example.softwaremetrics.domain.banned.BannedApiChecker;
+import com.example.softwaremetrics.domain.deadcode.DeadCodeDetector;
+import com.example.softwaremetrics.domain.deadcode.DeadCodeResult;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -48,23 +53,46 @@ public class PackageScannerController {
         this.archChecker = archChecker;
     }
 
+    /** Result of the optional checks driven by aic-check.yaml / the architecture dropdown. */
+    private record Checks(ArchResult architecture, List<GateResult.Violation> bannedApis, DeadCodeResult deadCode) {
+    }
+
     /**
-     * Runs the architecture check, resolving the spec from the project's {@code aic-check.yaml} or the
-     * selected template (the dropdown overrides the project file). Returns null when no spec applies.
+     * Runs architecture, banned-API and dead-code checks per the project's {@code aic-check.yaml}
+     * (the architecture dropdown overrides the file). Each is null/empty when not configured.
      */
-    private ArchResult checkArchitecture(String path, String arch) {
+    private Checks runChecks(String path, String arch) {
         Path projectPath = Path.of(path);
         CheckConfig config = CheckConfigLoader.resolve(projectPath,
                 new CheckConfigLoader.Overrides(null, false, arch));
-        if (config.architecture() == null) {
-            return null;
+
+        boolean needsModel = !config.bannedApis().isEmpty() || config.deadCodeEnabled();
+        boolean needsArch = config.architecture() != null;
+        if (!needsModel && !needsArch) {
+            return new Checks(null, List.of(), null);
         }
         String mainPackage = packageLocator.findMainPackage(projectPath);
         if (mainPackage == null || mainPackage.isEmpty()) {
-            return null;
+            return new Checks(null, List.of(), null);
         }
-        Map<String, Set<String>> classDeps = javaClassAnalyzer.buildClassDependencyGraph(projectPath, mainPackage);
-        return archChecker.check(config.architecture(), classDeps);
+
+        ArchResult architecture = null;
+        if (needsArch) {
+            architecture = archChecker.check(config.architecture(),
+                    javaClassAnalyzer.buildClassDependencyGraph(projectPath, mainPackage));
+        }
+        List<GateResult.Violation> bannedApis = List.of();
+        DeadCodeResult deadCode = null;
+        if (needsModel) {
+            List<ClassInfo> projectModel = javaClassAnalyzer.analyzeProject(projectPath, mainPackage);
+            if (!config.bannedApis().isEmpty()) {
+                bannedApis = new BannedApiChecker().check(projectModel, config.bannedApis());
+            }
+            if (config.deadCodeEnabled()) {
+                deadCode = new DeadCodeDetector().detect(projectModel);
+            }
+        }
+        return new Checks(architecture, bannedApis, deadCode);
     }
 
     @GetMapping("/")
@@ -77,9 +105,12 @@ public class PackageScannerController {
     public String scan(@RequestParam String path, @RequestParam(defaultValue = "") String arch, Model model) {
         try {
             Map<String, PackageMetrics> metrics = springBootPackageScanner.scanProject(path);
+            Checks checks = runChecks(path, arch);
             model.addAttribute("metrics", metrics);
             model.addAttribute("cycles", cycleDetector.findCycles(metrics));
-            model.addAttribute("architecture", checkArchitecture(path, arch));
+            model.addAttribute("architecture", checks.architecture());
+            model.addAttribute("bannedApiViolations", checks.bannedApis());
+            model.addAttribute("deadCode", checks.deadCode());
             model.addAttribute("arch", arch);
             return "graph :: graph";
         } catch (IllegalArgumentException | IllegalStateException e) {
@@ -98,9 +129,16 @@ public class PackageScannerController {
         try {
             Map<String, PackageMetrics> metrics = springBootPackageScanner.scanProject(path);
             List<List<String>> cycles = cycleDetector.findCycles(metrics);
+            Checks checks = runChecks(path, arch);
             MetricsExport export = MetricsExport.from(path, toolVersion, metrics)
                     .withCycles(cycles)
-                    .withArchitecture(checkArchitecture(path, arch));
+                    .withArchitecture(checks.architecture());
+            if (!checks.bannedApis().isEmpty()) {
+                export = export.withBannedApis(checks.bannedApis());
+            }
+            if (checks.deadCode() != null) {
+                export = export.withDeadCode(checks.deadCode());
+            }
             return ResponseEntity.ok(export);
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

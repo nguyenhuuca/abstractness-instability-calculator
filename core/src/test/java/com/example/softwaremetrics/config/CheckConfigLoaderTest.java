@@ -1,6 +1,7 @@
 package com.example.softwaremetrics.config;
 
 import com.example.softwaremetrics.config.CheckConfigLoader.Overrides;
+import com.example.softwaremetrics.domain.banned.BannedApiRule;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -115,5 +116,53 @@ class CheckConfigLoaderTest {
         assertThatThrownBy(() -> CheckConfigLoader.resolve(proj, Overrides.none()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Unknown architecture template");
+    }
+
+    @Test
+    void parsesMaxComplexityGate(@TempDir Path proj) throws IOException {
+        writeFile(proj, "aic-check.yaml", """
+                gates:
+                  max-complexity:
+                    enabled: true
+                    threshold: 12
+                """);
+
+        CheckConfig cfg = CheckConfigLoader.resolve(proj, Overrides.none());
+
+        assertThat(cfg.gate().maxComplexityEnabled()).isTrue();
+        assertThat(cfg.gate().maxComplexity()).isEqualTo(12);
+    }
+
+    @Test
+    void parsesBannedApisWithAllowedIn(@TempDir Path proj) throws IOException {
+        writeFile(proj, "aic-check.yaml", """
+                banned-apis:
+                  enabled: true
+                  rules:
+                    - method: java.lang.System.exit
+                      message: "no exit"
+                    - package: java.sql
+                      allowedIn: ['.*\\.repository\\..*']
+                """);
+
+        CheckConfig cfg = CheckConfigLoader.resolve(proj, Overrides.none());
+
+        assertThat(cfg.bannedApis()).hasSize(2);
+        assertThat(cfg.bannedApis().get(0).kind()).isEqualTo(BannedApiRule.Kind.METHOD);
+        assertThat(cfg.bannedApis().get(0).target()).isEqualTo("java.lang.System.exit");
+        assertThat(cfg.bannedApis().get(1).kind()).isEqualTo(BannedApiRule.Kind.PACKAGE);
+        assertThat(cfg.bannedApis().get(1).isAllowedIn("com.app.repository.UserRepository")).isTrue();
+        assertThat(cfg.bannedApis().get(1).isAllowedIn("com.app.service.UserService")).isFalse();
+    }
+
+    @Test
+    void parsesDeadCodeFlag(@TempDir Path proj) throws IOException {
+        writeFile(proj, "aic-check.yaml", """
+                dead-code:
+                  enabled: true
+                """);
+
+        assertThat(CheckConfigLoader.resolve(proj, Overrides.none()).deadCodeEnabled()).isTrue();
+        assertThat(CheckConfigLoader.resolve(proj, Overrides.none()).bannedApis()).isEmpty();
     }
 }

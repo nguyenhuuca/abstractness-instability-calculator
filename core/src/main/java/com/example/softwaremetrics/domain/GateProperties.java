@@ -12,6 +12,7 @@ public class GateProperties {
     private ToggleGate forbiddenZones = new ToggleGate(false);
     private ThresholdGate maxAverageDistance = new ThresholdGate(false, 0.5);
     private ToggleGate noCycles = new ToggleGate(false);
+    private ThresholdGate maxComplexity = new ThresholdGate(false, 15);
 
     public ThresholdGate getMaxPackageDistance() {
         return maxPackageDistance;
@@ -45,12 +46,21 @@ public class GateProperties {
         this.noCycles = noCycles;
     }
 
+    public ThresholdGate getMaxComplexity() {
+        return maxComplexity;
+    }
+
+    public void setMaxComplexity(ThresholdGate maxComplexity) {
+        this.maxComplexity = maxComplexity;
+    }
+
     public GateConfig toConfig() {
         return new GateConfig(
                 maxPackageDistance.isEnabled(), maxPackageDistance.getThreshold(),
                 forbiddenZones.isEnabled(),
                 maxAverageDistance.isEnabled(), maxAverageDistance.getThreshold(),
-                noCycles.isEnabled());
+                noCycles.isEnabled(),
+                maxComplexity.isEnabled(), (int) maxComplexity.getThreshold());
     }
 
     public static class ToggleGate {

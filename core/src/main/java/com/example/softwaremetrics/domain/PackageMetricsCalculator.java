@@ -39,13 +39,14 @@ public class PackageMetricsCalculator {
         Map<String, Set<String>> incomingDependencies = new ConcurrentHashMap<>();
         Map<String, Integer> abstractClassCount = new ConcurrentHashMap<>();
         Map<String, Integer> totalClassCount = new ConcurrentHashMap<>();
+        Map<String, ComplexityStats> complexity = new ConcurrentHashMap<>();
 
         initializeMaps(modulePackages, outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount);
 
-        javaClassAnalyzer.analyzeClasses(projectPath, modulePackages, outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount);
+        javaClassAnalyzer.analyzeClasses(projectPath, modulePackages, outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount, complexity);
 
         logger.debug("Dependency analysis completed. Calculating final metrics.");
-        return computeMetrics(modulePackages, outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount);
+        return computeMetrics(modulePackages, outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount, complexity);
     }
 
     private void initializeMaps(List<String> modulePackages, Map<String, Set<String>> outgoingDependencies,
@@ -64,7 +65,8 @@ public class PackageMetricsCalculator {
                                                        Map<String, Set<String>> outgoingDependencies,
                                                        Map<String, Set<String>> incomingDependencies,
                                                        Map<String, Integer> abstractClassCount,
-                                                       Map<String, Integer> totalClassCount) {
+                                                       Map<String, Integer> totalClassCount,
+                                                       Map<String, ComplexityStats> complexity) {
         Map<String, PackageMetrics> metrics = new ConcurrentHashMap<>();
         for (String pkg : modulePackages) {
             int ce = outgoingDependencies.getOrDefault(pkg, Set.of()).size();
@@ -88,6 +90,14 @@ public class PackageMetricsCalculator {
             pkgMetrics.setAbstractness(abstractness);
             pkgMetrics.setInstability(instability);
             pkgMetrics.setDistance(distance);
+
+            ComplexityStats stats = complexity.get(pkg);
+            if (stats != null) {
+                pkgMetrics.setMethodCount(stats.methodCount());
+                pkgMetrics.setAvgComplexity(stats.averageComplexity());
+                pkgMetrics.setMaxComplexity(stats.maxComplexity());
+                pkgMetrics.setMostComplexMethod(stats.mostComplexMethod());
+            }
 
             metrics.put(pkg, pkgMetrics);
 

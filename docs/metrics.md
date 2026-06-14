@@ -24,6 +24,17 @@ The scatter plot visualizes three metrics for each package.
 - **Use:** packages close to the Main Sequence are well balanced; high-D packages are refactoring
   candidates.
 
+## Complexity
+
+Each package also reports method complexity (from bytecode):
+
+- **Max complexity** — the highest cyclomatic complexity among the package's methods (and which method).
+- **Avg complexity** — average cyclomatic complexity across the package's methods, with the method count.
+
+Cyclomatic complexity ≈ 1 + decision points (conditional branches + switch cases). The
+`max-complexity` gate fails the build when any method exceeds a configured threshold — see
+[CLI & CI Gates](cli-and-ci.md).
+
 ## Reading the scatter plot
 
 The chart highlights several regions:

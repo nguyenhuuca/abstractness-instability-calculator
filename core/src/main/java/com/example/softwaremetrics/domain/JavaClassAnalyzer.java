@@ -5,13 +5,22 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.signature.SignatureReader;
 import org.objectweb.asm.signature.SignatureVisitor;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.JumpInsnNode;
+import org.objectweb.asm.tree.LookupSwitchInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TableSwitchInsnNode;
+import org.objectweb.asm.tree.TypeInsnNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -84,13 +93,14 @@ public class JavaClassAnalyzer {
                         Map<String, Set<String>> outgoingDependencies,
                         Map<String, Set<String>> incomingDependencies,
                         Map<String, Integer> abstractClassCount,
-                        Map<String, Integer> totalClassCount) {
+                        Map<String, Integer> totalClassCount,
+                        Map<String, ComplexityStats> complexity) {
         try (var walk = Files.walk(projectPath)) {
             walk
                     .filter(Files::isRegularFile)
                     .filter(p -> p.toString().endsWith(".class"))
                     .filter(this::isNotTestClass)
-                    .forEach(file -> analyzeClassFile(file, modulePackages, outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount));
+                    .forEach(file -> analyzeClassFile(file, modulePackages, outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount, complexity));
         } catch (IOException e) {
             logger.error("Error while analyzing classes for {}", projectPath, e);
             throw new IllegalStateException(e);
@@ -154,6 +164,133 @@ public class JavaClassAnalyzer {
         return type;
     }
 
+    /** Cyclomatic complexity of a method = 1 + conditional branches + switch cases. */
+    private int cyclomaticComplexity(MethodNode method) {
+        int complexity = 1;
+        for (AbstractInsnNode insn : method.instructions) {
+            if (insn instanceof JumpInsnNode jump) {
+                int op = jump.getOpcode();
+                if (op != Opcodes.GOTO && op != Opcodes.JSR) {
+                    complexity++;
+                }
+            } else if (insn instanceof TableSwitchInsnNode ts) {
+                complexity += ts.labels.size();
+            } else if (insn instanceof LookupSwitchInsnNode ls) {
+                complexity += ls.labels.size();
+            }
+        }
+        return complexity;
+    }
+
+    private static final Set<String> ENTRY_ANNOTATION_MARKERS = Set.of(
+            "SpringBootApplication", "RestController", "Controller", "Service",
+            "Repository", "Component", "Configuration", "Entity");
+
+    /**
+     * Builds a per-class model (refs + entry-point flag) for the dead-code and banned-API checks.
+     * Captures ALL references (incl. JDK/3rd-party) — exclusion lists are NOT applied here, because
+     * banned-API rules target exactly those (e.g. {@code java.lang.System.exit}).
+     */
+    public List<ClassInfo> analyzeProject(Path projectPath, String mainPackage) {
+        List<ClassInfo> classes = new ArrayList<>();
+        String prefix = mainPackage + ".";
+        try (var walk = Files.walk(projectPath)) {
+            walk.filter(Files::isRegularFile)
+                    .filter(p -> p.toString().endsWith(".class"))
+                    .filter(this::isNotTestClass)
+                    .forEach(file -> {
+                        ClassInfo info = collectClassInfo(file, prefix);
+                        if (info != null) {
+                            classes.add(info);
+                        }
+                    });
+        } catch (IOException e) {
+            logger.error("Error analyzing project model for {}", projectPath, e);
+            throw new IllegalStateException(e);
+        }
+        return classes;
+    }
+
+    private ClassInfo collectClassInfo(Path file, String firstPartyPrefix) {
+        try {
+            ClassNode classNode = new ClassNode();
+            new ClassReader(Files.newInputStream(file)).accept(classNode, 0);
+
+            String fqcn = Type.getObjectType(classNode.name).getClassName();
+            if (!fqcn.startsWith(firstPartyPrefix) || fqcn.contains("$")) {
+                return null;
+            }
+
+            Set<String> typeRefs = new LinkedHashSet<>();
+            Set<String> methodRefs = new LinkedHashSet<>();
+            boolean hasMain = false;
+            for (MethodNode method : classNode.methods) {
+                collectRawReferences(method, typeRefs, methodRefs);
+                hasMain = hasMain || isMainMethod(method);
+            }
+            boolean entryPoint = hasMain || hasEntryAnnotation(classNode);
+
+            Set<String> firstPartyClassRefs = new LinkedHashSet<>();
+            for (String t : typeRefs) {
+                if (t.startsWith(firstPartyPrefix) && !t.equals(fqcn) && !t.contains("$")) {
+                    firstPartyClassRefs.add(t);
+                }
+            }
+            return new ClassInfo(fqcn, getPackageName(fqcn), entryPoint, firstPartyClassRefs, typeRefs, methodRefs);
+        } catch (IOException e) {
+            logger.error("Error reading class file: {}", file, e);
+            return null;
+        }
+    }
+
+    /** Collects every referenced type and method ({@code owner.name}) of a method, unfiltered. */
+    private void collectRawReferences(MethodNode method, Set<String> typeRefs, Set<String> methodRefs) {
+        typeRefs.add(stripArraySuffix(Type.getReturnType(method.desc).getClassName()));
+        for (Type p : Type.getArgumentTypes(method.desc)) {
+            typeRefs.add(stripArraySuffix(p.getClassName()));
+        }
+        if (method.exceptions != null) {
+            for (String ex : method.exceptions) {
+                typeRefs.add(Type.getObjectType(ex).getClassName());
+            }
+        }
+        for (AbstractInsnNode insn : method.instructions) {
+            if (insn instanceof MethodInsnNode m) {
+                String owner = Type.getObjectType(m.owner).getClassName();
+                typeRefs.add(owner);
+                methodRefs.add(owner + "." + m.name);
+            } else if (insn instanceof FieldInsnNode f) {
+                typeRefs.add(Type.getObjectType(f.owner).getClassName());
+            } else if (insn instanceof TypeInsnNode t) {
+                typeRefs.add(Type.getObjectType(t.desc).getClassName());
+            }
+        }
+    }
+
+    private boolean isMainMethod(MethodNode m) {
+        return "main".equals(m.name)
+                && "([Ljava/lang/String;)V".equals(m.desc)
+                && (m.access & Opcodes.ACC_STATIC) != 0;
+    }
+
+    private boolean hasEntryAnnotation(ClassNode classNode) {
+        return annotationMatches(classNode.visibleAnnotations) || annotationMatches(classNode.invisibleAnnotations);
+    }
+
+    private boolean annotationMatches(List<AnnotationNode> annotations) {
+        if (annotations == null) {
+            return false;
+        }
+        for (AnnotationNode a : annotations) {
+            for (String marker : ENTRY_ANNOTATION_MARKERS) {
+                if (a.desc != null && a.desc.contains(marker)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private boolean isNotTestClass(Path path) {
         String p = path.toString().replace('\\', '/'); // normalize Windows separators
         return !p.contains("/target/test-classes/")        // Maven
@@ -165,7 +302,8 @@ public class JavaClassAnalyzer {
                                   Map<String, Set<String>> outgoingDependencies,
                                   Map<String, Set<String>> incomingDependencies,
                                   Map<String, Integer> abstractClassCount,
-                                  Map<String, Integer> totalClassCount) {
+                                  Map<String, Integer> totalClassCount,
+                                  Map<String, ComplexityStats> complexity) {
         try {
             ClassReader classReader = new ClassReader(Files.newInputStream(file));
             ClassNode classNode = new ClassNode();
@@ -185,16 +323,19 @@ public class JavaClassAnalyzer {
                 abstractClassCount.merge(topLevelPackage, 1, Integer::sum);
             }
 
+            String simpleName = className.substring(className.lastIndexOf('.') + 1);
+            ComplexityStats stats = complexity.computeIfAbsent(topLevelPackage, k -> new ComplexityStats());
+
             Set<String> dependencies = new HashSet<>();
             for (MethodNode method : classNode.methods) {
                 analyzeDependencies(method, dependencies);
+                if ((method.access & (Opcodes.ACC_ABSTRACT | Opcodes.ACC_NATIVE)) == 0) {
+                    stats.add(simpleName + "#" + method.name, cyclomaticComplexity(method));
+                }
             }
             analyzeClassSignature(classNode, dependencies);
 
             for (String dependency : dependencies) {
-                if (topLevelPackage.contains("repo")) {
-                    logger.info("test");
-                }
                 if (dependency.endsWith("Builder")) continue;
                 if (dependency.contains("$")) continue; // Skip inner classes
                 String dependencyPackage = getPackageName(dependency);
@@ -230,13 +371,6 @@ public class JavaClassAnalyzer {
     private boolean isBasicType(String typeName) {
         if (!props.getBasicTypes().isDisabled()) return false;
         return props.getBasicTypes().getValues().contains(typeName) || props.getBasicTypes().getValues().contains(getPackageName(typeName));
-    }
-
-    private void addDependencyIfNotExcludedDescriptor(Set<String> dependencies, String descriptor) {
-        String className = normalizeArrayType(descriptor);
-        if (!isExcludedDependency(className)) {
-            dependencies.add(className);
-        }
     }
 
     private String normalizeArrayType(String rawType) {
@@ -319,9 +453,7 @@ public class JavaClassAnalyzer {
     }
 
     private void addDependencyIfNotExcluded(Set<String> dependencies, String dependency) {
-        logger.info("before normalized dependency: {}", dependency);
         String normalized = normalizeArrayClassName(dependency);
-        logger.info("after normalized dependency: {}", normalized);
         if (!isExcludedDependency(normalized)) {
             dependencies.add(dependency);
         }

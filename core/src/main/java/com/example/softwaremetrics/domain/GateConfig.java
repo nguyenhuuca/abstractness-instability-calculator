@@ -9,10 +9,11 @@ public record GateConfig(
         boolean maxPackageDistanceEnabled, double maxPackageDistance,
         boolean forbiddenZonesEnabled,
         boolean maxAverageDistanceEnabled, double maxAverageDistance,
-        boolean noCyclesEnabled) {
+        boolean noCyclesEnabled,
+        boolean maxComplexityEnabled, int maxComplexity) {
 
     /** All gates disabled — nothing fails the build. */
     public static GateConfig disabled() {
-        return new GateConfig(false, 0.0, false, false, 0.0, false);
+        return new GateConfig(false, 0.0, false, false, 0.0, false, false, 0);
     }
 }

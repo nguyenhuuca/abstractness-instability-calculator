@@ -38,6 +38,25 @@ gates:
     threshold: 0.5
   no-cycles:
     enabled: true
+  max-complexity:             # fail if any method's cyclomatic complexity exceeds threshold
+    enabled: false
+    threshold: 15
+
+# Forbidden APIs — a gate. Each rule bans a class / method / package; allowedIn exempts matching classes.
+banned-apis:
+  enabled: false
+  rules:
+    - method: java.lang.System.exit
+      message: "Don't call System.exit"
+    - class: java.util.Date
+      message: "Use java.time"
+    - package: java.sql
+      message: "DB access only in the repository layer"
+      allowedIn: ['.*\.repository\..*', '.*\.repo\..*']
+
+# Dead-code report (class-level). Report-only — never fails the build (DI/reflection → false positives).
+dead-code:
+  enabled: false
 
 architecture:
   enabled: true

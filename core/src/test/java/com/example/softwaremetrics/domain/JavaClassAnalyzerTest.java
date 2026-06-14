@@ -72,8 +72,9 @@ class JavaClassAnalyzerTest {
         Map<String, Set<String>> incoming = new ConcurrentHashMap<>();
         Map<String, Integer> abstractCount = new HashMap<>();
         Map<String, Integer> totalCount = new HashMap<>();
+        Map<String, ComplexityStats> complexity = new HashMap<>();
 
-        javaClassAnalyzer.analyzeClasses(tempDir, packages, outgoing, incoming, abstractCount, totalCount);
+        javaClassAnalyzer.analyzeClasses(tempDir, packages, outgoing, incoming, abstractCount, totalCount, complexity);
 
         // Only Bar (under target/classes) is counted; FooTest under target/test-classes is excluded.
         assertEquals(1, totalCount.get("com.example.subpackage"));
@@ -108,9 +109,10 @@ class JavaClassAnalyzerTest {
         Map<String, Set<String>> incomingDependencies = new ConcurrentHashMap<>();
         Map<String, Integer> abstractClassCount = new HashMap<>();
         Map<String, Integer> totalClassCount = new HashMap<>();
+        Map<String, ComplexityStats> complexity = new HashMap<>();
 
         // Run the analysis
-        javaClassAnalyzer.analyzeClasses(tempDir, packages, outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount);
+        javaClassAnalyzer.analyzeClasses(tempDir, packages, outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount, complexity);
 
         // Verify the results
         assertEquals(3, totalClassCount.get("com.example.anothersubpackage"));
@@ -130,6 +132,25 @@ class JavaClassAnalyzerTest {
 
         // Verify that java.lang dependencies are not included
         assertFalse(outgoingDependencies.get("com.example.anothersubpackage").contains("java.lang.String"));
+
+        // Complexity is recorded per package (each method has at least complexity 1).
+        assertTrue(complexity.get("com.example.anothersubpackage").methodCount() > 0);
+        assertTrue(complexity.get("com.example.anothersubpackage").maxComplexity() >= 1);
+    }
+
+    @Test
+    void testAnalyzeProjectCapturesReferences(@TempDir Path tempDir) throws IOException {
+        createTestClass(tempDir, "com/app/web/FooController.class", "com.app.web.FooController", false, "com.app.service.FooService");
+        createTestClass(tempDir, "com/app/service/FooService.class", "com.app.service.FooService", false, "com.app.service.FooService");
+
+        List<ClassInfo> model = javaClassAnalyzer.analyzeProject(tempDir, "com.app");
+
+        ClassInfo controller = model.stream()
+                .filter(c -> c.fqcn().equals("com.app.web.FooController"))
+                .findFirst().orElseThrow();
+        assertFalse(controller.entryPoint());
+        assertTrue(controller.firstPartyClassRefs().contains("com.app.service.FooService"));
+        assertTrue(controller.typeRefs().contains("com.app.service.FooService"));
     }
 
     @Test
