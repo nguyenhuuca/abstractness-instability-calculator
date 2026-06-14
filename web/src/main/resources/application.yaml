@@ -1,0 +1,70 @@
+logging:
+    level:
+      com:
+        example: DEBUG
+
+
+instability-calculator:
+  # Dependency-exclusion lists: classes matching these are not counted as coupling.
+  # (Quality gates apply to the CLI/CI mode, which uses code defaults — see core's Defaults.)
+  native-packages:
+    disabled: true
+    values:
+      - java.
+      - javax.
+      - jakarta.
+      - sun.
+      - com.sun.
+      - org.w3c.
+      - org.xml.
+      - org.omg.
+      - org.ietf.
+      - jdk.
+      - org.apache.xerces.
+      - org.relaxng.
+
+  external-packages:
+    disabled: true
+    values:
+      - org.springframework.
+      - org.apache.
+      - com.google.
+      - org.junit.
+      - org.mockito.
+      - org.slf4j.
+      - org.logback.
+      - org.hibernate.
+      - com.fasterxml.
+      - org.assertj.
+      - org.aspectj.
+      - io.micrometer.
+      - io.swagger.
+      - io.jsonwebtoken.
+      - org.json.
+
+  basic-types:
+    disabled: true
+    values:
+      - boolean
+      - byte
+      - char
+      - short
+      - int
+      - long
+      - float
+      - double
+      - void
+      - java.lang.Boolean
+      - java.lang.Byte
+      - java.lang.Character
+      - java.lang.Short
+      - java.lang.Integer
+      - java.lang.Long
+      - java.lang.Float
+      - java.lang.Double
+      - java.lang.Void
+      - java.lang.String
+      - java.lang.Object
+      - java.lang.Class
+server:
+  port: 8081

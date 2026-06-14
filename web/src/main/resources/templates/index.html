@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<!--suppress CssUnusedSymbol -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abstractness &amp; Instability Metrics Calculator</title>
+    <script src="https://unpkg.com/htmx.org@2.0.2"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
+    <script>
+        htmx.config.useTemplateFragments = true;
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-1: #050507;
+            --bg-2: #0d0d14;
+            --accent: #818cf8;
+            --accent-2: #c084fc;
+            --accent-grad: linear-gradient(135deg, #818cf8 0%, #c084fc 100%);
+            --text: #e5e7eb;
+            --text-muted: #9ca3af;
+            --surface: #101018;
+            --card: rgba(255, 255, 255, 0.04);
+            --border: rgba(255, 255, 255, 0.09);
+            --green: #34d399;
+            --red: #f87171;
+            --amber: #fbbf24;
+            --shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.7);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: var(--text);
+            margin: 0;
+            padding: 0 0 60px;
+            min-height: 100vh;
+            background:
+                radial-gradient(1200px 600px at 10% -10%, rgba(129, 140, 248, 0.18), transparent 60%),
+                radial-gradient(1000px 500px at 100% 0%, rgba(192, 132, 252, 0.16), transparent 55%),
+                linear-gradient(160deg, #050507 0%, #0d0d14 60%, #08080d 100%);
+            background-attachment: fixed;
+        }
+
+        /* ---------- Hero ---------- */
+        .hero {
+            text-align: center;
+            padding: 56px 20px 28px;
+        }
+        .hero .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: rgba(99, 102, 241, 0.12);
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            margin-bottom: 18px;
+        }
+        .hero h1 {
+            font-size: clamp(28px, 4vw, 44px);
+            font-weight: 800;
+            margin: 0 0 12px;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #f8fafc 0%, #a5b4fc 55%, #c084fc 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero p.subtitle {
+            max-width: 620px;
+            margin: 0 auto;
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+
+        /* ---------- Search card ---------- */
+        form.scan-form {
+            background: var(--card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 24px;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+            max-width: 760px;
+            margin: 28px auto 0;
+        }
+        form.scan-form label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text);
+        }
+        .input-row {
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+        }
+        .input-wrap {
+            position: relative;
+            flex: 1;
+        }
+        .input-wrap i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 15px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 14px 16px 14px 44px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 15px;
+            font-family: inherit;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text);
+            transition: border-color .2s, box-shadow .2s;
+        }
+        input[type="text"]::placeholder { color: var(--text-muted); }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.2);
+        }
+        button.scan-btn {
+            background: var(--accent-grad);
+            color: white;
+            padding: 0 26px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform .15s ease, box-shadow .2s ease, filter .2s;
+            box-shadow: 0 8px 20px -6px rgba(99, 102, 241, 0.6);
+        }
+        button.scan-btn:hover { transform: translateY(-1px); filter: brightness(1.05); }
+        button.scan-btn:active { transform: translateY(0); }
+
+        /* ---------- Summary stat cards ---------- */
+        #summaryStats {
+            display: none;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+            max-width: 1200px;
+            margin: 28px auto 0;
+            padding: 0 20px;
+        }
+        .stat-card {
+            background: var(--card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 18px 20px;
+            box-shadow: var(--shadow);
+        }
+        .stat-card .stat-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .stat-card .stat-value {
+            font-size: 30px;
+            font-weight: 800;
+            margin-top: 6px;
+            letter-spacing: -0.02em;
+        }
+        .stat-card.green .stat-value { color: var(--green); }
+        .stat-card.red .stat-value { color: var(--red); }
+        .stat-card.accent .stat-value { color: var(--accent); }
+
+        /* ---------- Tabs ---------- */
+        #tabContainer {
+            display: none;
+            max-width: 1200px;
+            margin: 28px auto 0;
+            padding: 0 20px;
+        }
+        .tab-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        #exportJsonBtn { padding: 11px 22px; }
+        .tabs {
+            display: inline-flex;
+            gap: 6px;
+            padding: 6px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            margin-bottom: 18px;
+            backdrop-filter: blur(8px);
+        }
+        .tab {
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-muted);
+            transition: all .2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            background: transparent;
+        }
+        .tab:hover { color: var(--text); background: rgba(99, 102, 241, 0.08); }
+        .tab.active {
+            background: var(--accent-grad);
+            color: #fff;
+            box-shadow: 0 6px 16px -6px rgba(99, 102, 241, 0.6);
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* ---------- Circular dependency banner ---------- */
+        .cycle-banner {
+            background: rgba(248, 113, 113, 0.08);
+            border: 1px solid rgba(248, 113, 113, 0.4);
+            border-left: 4px solid var(--red);
+            border-radius: 14px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+        }
+        .cycle-banner-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            color: var(--red);
+            margin-bottom: 8px;
+        }
+        .cycle-list {
+            margin: 0;
+            padding-left: 28px;
+            color: var(--text);
+            font-size: 14px;
+        }
+        .cycle-list li { padding: 2px 0; font-family: monospace; word-break: break-all; }
+
+        /* ---------- Layout for graph fragment ---------- */
+        .container {
+            display: flex;
+            justify-content: space-between;
+            gap: 24px;
+        }
+        .chart-container {
+            flex: 0 0 58%;
+            aspect-ratio: 1 / 1;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+            padding: 24px;
+        }
+        .package-details {
+            flex: 1;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+            padding: 24px;
+            overflow-y: auto;
+            max-height: calc(100vh - 40px);
+        }
+        canvas { width: 100%; height: 100%; }
+
+        .package-details h3 {
+            margin-top: 0;
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .package-details h4 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--accent);
+            word-break: break-all;
+            margin: 4px 0 16px;
+        }
+        #packageDetailsContent { font-size: 14px; }
+        .package-details p {
+            margin: 8px 0;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.04);
+        }
+        .package-details p strong {
+            display: inline-block;
+            width: 200px;
+            font-weight: 600;
+        }
+        .package-details p i { margin-right: 10px; color: var(--accent); }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 40px 10px;
+        }
+        .empty-state i { font-size: 34px; color: var(--accent); opacity: .5; margin-bottom: 12px; display: block; }
+
+        /* ---------- Tooltip ---------- */
+        .tooltip { position: relative; display: inline-block; }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 220px;
+            background: #1c1c28;
+            border: 1px solid var(--border);
+            color: #fff;
+            text-align: center;
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 12px;
+            line-height: 1.5;
+            position: absolute;
+            z-index: 10;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity .25s;
+            box-shadow: var(--shadow);
+        }
+        .tooltip:hover .tooltiptext { visibility: visible; opacity: 1; }
+
+        /* ---------- Dependencies ---------- */
+        .dependencies-container { margin-top: 24px; }
+        .dependencies-container h5 {
+            font-size: 14px;
+            font-weight: 700;
+            margin: 18px 0 10px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid var(--border);
+        }
+        .dependency-group { margin-bottom: 8px; }
+        .dependency-group h6 {
+            cursor: pointer;
+            margin: 0;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 8px;
+            background: rgba(99, 102, 241, 0.08);
+            transition: background .2s;
+        }
+        .dependency-group h6:hover { background: rgba(99, 102, 241, 0.16); }
+        .dependency-list {
+            list-style: none;
+            padding-left: 14px;
+            margin: 6px 0;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .dependency-list li { padding: 3px 0; word-break: break-all; }
+        .show-more { color: var(--accent); cursor: pointer; font-weight: 600; }
+        #efferentSearch, #afferentSearch {
+            width: 100%;
+            padding: 8px 12px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 13px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text);
+        }
+        #efferentSearch::placeholder, #afferentSearch::placeholder { color: var(--text-muted); }
+        #efferentSearch:focus, #afferentSearch:focus { outline: none; border-color: var(--accent); }
+
+        /* ---------- Dependency visualization tab ---------- */
+        #packageDependenciesContent { display: flex; flex-direction: column; }
+        .dropdown-container { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-bottom: 20px; }
+        .select-wrapper { position: relative; display: inline-block; width: 300px; max-width: 100%; }
+        .select-wrapper select {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 30px 12px 14px;
+            width: 100%;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            appearance: none;
+        }
+        .select-wrapper select option { background: var(--surface); color: var(--text); }
+        .select-wrapper select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.2); }
+        .select-wrapper::after {
+            content: "\f078";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            font-size: 11px;
+            position: absolute;
+            top: 50%;
+            right: 14px;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: var(--text-muted);
+        }
+        #dependencyVisualization {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+            padding: 16px;
+            min-height: 400px;
+        }
+        #dependencyVisualization input[type="text"] {
+            max-width: 320px;
+        }
+
+        /* ---------- Spinner ---------- */
+        .spinner {
+            display: none;
+            width: 46px;
+            height: 46px;
+            border: 4px solid rgba(99, 102, 241, 0.18);
+            border-top: 4px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+            margin: 32px auto;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 860px) {
+            .container { flex-direction: column; }
+            .chart-container, .package-details { flex: 1 1 100%; }
+        }
+    </style>
+</head>
+<body>
+    <header class="hero">
+        <span class="badge"><i class="fas fa-diagram-project"></i> Software Architecture Metrics</span>
+        <h1>Abstractness &amp; Instability Calculator</h1>
+        <p class="subtitle">
+            Analyze your Spring Boot project's package design. Visualize where each module sits
+            relative to the Main Sequence and spot the Zones of Pain and Uselessness.
+        </p>
+    </header>
+
+    <form class="scan-form" hx-post="/scan" hx-target="#result" hx-indicator="#loadingSpinner" hx-on::after-request="showTabs()">
+        <label for="path">Project Path</label>
+        <div class="input-row">
+            <div class="input-wrap">
+                <i class="fas fa-folder-open"></i>
+                <input type="text" id="path" name="path" required placeholder="e.g. /Users/me/projects/my-spring-app">
+            </div>
+            <button class="scan-btn" type="submit"><i class="fas fa-magnifying-glass-chart"></i> Scan</button>
+        </div>
+    </form>
+
+    <div id="loadingSpinner" class="spinner"></div>
+
+    <div id="summaryStats">
+        <div class="stat-card accent">
+            <div class="stat-label"><i class="fas fa-cubes"></i> Packages</div>
+            <div class="stat-value" id="statTotal">0</div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-label"><i class="fas fa-circle-check"></i> Well Designed</div>
+            <div class="stat-value" id="statGood">0</div>
+        </div>
+        <div class="stat-card red">
+            <div class="stat-label"><i class="fas fa-triangle-exclamation"></i> Needs Attention</div>
+            <div class="stat-value" id="statBad">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label"><i class="fas fa-ruler"></i> Avg. Distance</div>
+            <div class="stat-value" id="statAvgD">0.00</div>
+        </div>
+    </div>
+
+    <div id="tabContainer">
+        <div class="tab-header">
+            <div class="tabs">
+                <button class="tab active" onclick="openTab(event, 'metricsTab')"><i class="fas fa-chart-scatter"></i> Metrics Chart</button>
+                <button class="tab" onclick="openTab(event, 'packageDependenciesTab')"><i class="fas fa-share-nodes"></i> Dependency Visualization</button>
+            </div>
+            <button id="exportJsonBtn" class="scan-btn" onclick="exportMetricsJson()"><i class="fas fa-download"></i> Export JSON</button>
+        </div>
+
+        <div id="metricsTab" class="tab-content active">
+            <div id="result"></div>
+        </div>
+
+        <div id="packageDependenciesTab" class="tab-content">
+            <div id="packageDependenciesContent">
+                <div class="dropdown-container">
+                    <div class="select-wrapper">
+                        <select id="packageSelect" onchange="visualizePackageDependencies()">
+                            <option value="">Select a package</option>
+                        </select>
+                    </div>
+                    <div class="select-wrapper">
+                        <select id="dependencyTypeSelect" onchange="visualizePackageDependencies()">
+                            <option value="efferent">Efferent Dependencies</option>
+                            <option value="afferent">Afferent Dependencies</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="dependencyVisualization"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        function openTab(evt, tabName) {
+            var i, tabContent, tabLinks;
+            tabContent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabContent.length; i++) {
+                tabContent[i].style.display = "none";
+            }
+            tabLinks = document.getElementsByClassName("tab");
+            for (i = 0; i < tabLinks.length; i++) {
+                tabLinks[i].className = tabLinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+
+        function showTabs() {
+            document.getElementById('loadingSpinner').style.display = 'none';
+            document.getElementById('tabContainer').style.display = 'block';
+            window.scannedPath = document.getElementById('path').value;
+            updateSummaryStats();
+            populatePackageDropdown();
+        }
+
+        // Build the same JSON envelope as GET /api/metrics from the already-loaded scan
+        // results and download it as a file (no re-scan needed).
+        function exportMetricsJson() {
+            const metrics = window.metricsData || {};
+            const entries = Object.values(metrics);
+            if (entries.length === 0) {
+                alert('Nothing to export yet — run a scan first.');
+                return;
+            }
+            let wellDesigned = 0, sumD = 0;
+            entries.forEach(m => {
+                const d = (m.distance != null) ? m.distance : 0;
+                sumD += d;
+                if (d <= 0.5) wellDesigned++;
+            });
+            const packageCount = entries.length;
+            const envelope = {
+                generatedAt: new Date().toISOString(),
+                projectPath: window.scannedPath || '',
+                toolVersion: '1.0-SNAPSHOT',
+                packageCount: packageCount,
+                summary: {
+                    wellDesigned: wellDesigned,
+                    needsAttention: packageCount - wellDesigned,
+                    averageDistance: Math.round((sumD / packageCount) * 100) / 100
+                },
+                packages: metrics
+            };
+
+            const blob = new Blob([JSON.stringify(envelope, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `metrics-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function updateSummaryStats() {
+            const metrics = window.metricsData || {};
+            const entries = Object.values(metrics);
+            const total = entries.length;
+            if (total === 0) return;
+            let good = 0, sumD = 0;
+            entries.forEach(m => {
+                const d = (m.distance != null) ? m.distance : 0;
+                sumD += d;
+                if (d <= 0.5) good++;
+            });
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statGood').textContent = good;
+            document.getElementById('statBad').textContent = total - good;
+            document.getElementById('statAvgD').textContent = (sumD / total).toFixed(2);
+            document.getElementById('summaryStats').style.display = 'grid';
+        }
+
+        document.body.addEventListener('htmx:beforeRequest', function(event) {
+            document.getElementById('loadingSpinner').style.display = 'block';
+        });
+
+        document.body.addEventListener('htmx:afterRequest', function(event) {
+            document.getElementById('loadingSpinner').style.display = 'none';
+        });
+
+        function populatePackageDropdown() {
+            const packageSelect = document.getElementById('packageSelect');
+            const packages = Object.keys(window.metricsData || {});
+            packageSelect.innerHTML = '<option value="">Select a package</option>';
+            packages.forEach(pkg => {
+                const option = document.createElement('option');
+                option.value = pkg;
+                option.textContent = pkg;
+                packageSelect.appendChild(option);
+            });
+        }
+
+        function visualizePackageDependencies() {
+            const packageName = document.getElementById('packageSelect').value;
+            const dependencyType = document.getElementById('dependencyTypeSelect').value;
+            const visualizationDiv = document.getElementById('dependencyVisualization');
+
+            if (!packageName) {
+                visualizationDiv.innerHTML = '<div class="empty-state"><i class="fas fa-share-nodes"></i>Please select a package.</div>';
+                return;
+            }
+
+            const packageData = window.metricsData[packageName];
+            if (!packageData) {
+                visualizationDiv.innerHTML = '<div class="empty-state"><i class="fas fa-circle-info"></i>No data available for the selected package.</div>';
+                return;
+            }
+
+            const dependencies = packageData[`${dependencyType}Dependencies`] || [];
+            createForceDirectedGraph(packageName, dependencies);
+        }
+
+        function createForceDirectedGraph(packageName, dependencies) {
+            const width = document.getElementById('dependencyVisualization').clientWidth;
+            const height = 500;
+
+            // Clear previous visualization
+            d3.select("#dependencyVisualization").selectAll("*").remove();
+
+            const svg = d3.select("#dependencyVisualization")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height)
+                .call(d3.zoom().on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                }));
+
+            const g = svg.append("g");
+
+            const nodes = [{ id: packageName, group: 1, level: 0 }];
+            const links = [];
+            const nodeMap = new Map();
+            nodeMap.set(packageName, nodes[0]);
+
+            dependencies.forEach(dep => {
+                const parts = dep.split('.');
+                let currentNode = nodes[0];
+                for (let i = 0; i < parts.length; i++) {
+                    const partialPackage = parts.slice(0, i + 1).join('.');
+                    if (!nodeMap.has(partialPackage)) {
+                        const newNode = { id: partialPackage, group: 2, level: i + 1 };
+                        nodes.push(newNode);
+                        nodeMap.set(partialPackage, newNode);
+                        links.push({ source: currentNode, target: newNode });
+                    }
+                    currentNode = nodeMap.get(partialPackage);
+                }
+            });
+
+            const simulation = d3.forceSimulation(nodes)
+                .force("link", d3.forceLink(links).id(d => d.id).distance(50))
+                .force("charge", d3.forceManyBody().strength(-100))
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .force("collision", d3.forceCollide().radius(30));
+
+            const link = g.append("g")
+                .selectAll("line")
+                .data(links)
+                .join("line")
+                .attr("stroke", "#cbd5e1")
+                .attr("stroke-opacity", 0.7)
+                .attr("stroke-width", 1.5);
+
+            const node = g.append("g")
+                .selectAll("circle")
+                .data(nodes)
+                .join("circle")
+                .attr("r", d => Math.max(4, 10 - d.level))
+                .attr("fill", d => d.group === 1 ? "#a855f7" : d3.interpolatePurples(Math.max(0.25, 1 - d.level / 10)))
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 1.5)
+                .call(drag(simulation));
+
+            const label = g.append("g")
+                .selectAll("text")
+                .data(nodes)
+                .join("text")
+                .text(d => d.id.split('.').pop())
+                .attr("font-size", d => `${Math.max(9, 12 - d.level)}px`)
+                .attr("font-family", "Inter, sans-serif")
+                .attr("fill", "#cbd5e1")
+                .attr("dx", 12)
+                .attr("dy", ".35em");
+
+            node.append("title")
+                .text(d => d.id);
+
+            simulation.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+
+                node
+                    .attr("cx", d => d.x)
+                    .attr("cy", d => d.y);
+
+                label
+                    .attr("x", d => d.x)
+                    .attr("y", d => d.y);
+            });
+
+            // Add search functionality
+            const search = d3.select("#dependencyVisualization")
+                .insert("div", ":first-child")
+                .append("input")
+                .attr("type", "text")
+                .attr("placeholder", "Search classes...")
+                .style("width", "300px")
+                .style("margin-bottom", "12px")
+                .style("padding", "8px 12px")
+                .style("border", "1px solid rgba(255,255,255,0.12)")
+                .style("border-radius", "8px")
+                .style("background", "rgba(255,255,255,0.05)")
+                .style("color", "#e5e7eb")
+                .style("font-family", "Inter, sans-serif")
+                .on("input", function() {
+                    const term = this.value.toLowerCase();
+                    highlightMatchingNodes(term);
+                });
+
+            function highlightMatchingNodes(term) {
+                // Reset all nodes and links
+                node.attr("opacity", 0.3).attr("r", d => Math.max(4, 10 - d.level));
+                label.attr("opacity", 0.3);
+                link.attr("opacity", 0.1).attr("stroke-width", 1.5);
+
+                if (term === "") {
+                    node.attr("opacity", 1);
+                    label.attr("opacity", 1);
+                    link.attr("opacity", 0.7);
+                    return;
+                }
+
+                const matchingNodes = nodes.filter(d => d.id.toLowerCase().includes(term));
+                const highlightedNodes = new Set();
+                const highlightedLinks = new Set();
+
+                matchingNodes.forEach(matchNode => {
+                    let currentNode = matchNode;
+                    while (currentNode) {
+                        highlightedNodes.add(currentNode.id);
+                        const parentLink = links.find(l => l.target === currentNode);
+                        if (parentLink) {
+                            highlightedLinks.add(parentLink);
+                            currentNode = parentLink.source;
+                        } else {
+                            break;
+                        }
+                    }
+                });
+
+                node.attr("opacity", d => highlightedNodes.has(d.id) ? 1 : 0.3)
+                    .attr("r", d => highlightedNodes.has(d.id) ? (15 - d.level) : Math.max(4, 10 - d.level));
+                label.attr("opacity", d => highlightedNodes.has(d.id) ? 1 : 0.3);
+                link.attr("opacity", d => highlightedLinks.has(d) ? 1 : 0.1)
+                    .attr("stroke-width", d => highlightedLinks.has(d) ? 2.5 : 1.5);
+            }
+
+            // Add legend
+            const legend = svg.append("g")
+                .attr("transform", "translate(20,20)");
+
+            legend.append("circle")
+                .attr("r", 6)
+                .attr("fill", "#a855f7")
+                .attr("cx", 0)
+                .attr("cy", 0);
+
+            legend.append("text")
+                .attr("x", 15)
+                .attr("y", 5)
+                .attr("font-family", "Inter, sans-serif")
+                .attr("font-size", "12px")
+                .attr("fill", "#cbd5e1")
+                .text("Selected Package");
+
+            legend.append("circle")
+                .attr("r", 6)
+                .attr("fill", d3.interpolatePurples(0.5))
+                .attr("cx", 0)
+                .attr("cy", 25);
+
+            legend.append("text")
+                .attr("x", 15)
+                .attr("y", 30)
+                .attr("font-family", "Inter, sans-serif")
+                .attr("font-size", "12px")
+                .attr("fill", "#cbd5e1")
+                .text("Dependency");
+
+            function drag(simulation) {
+                function dragstarted(event) {
+                    if (!event.active) simulation.alphaTarget(0.3).restart();
+                    event.subject.fx = event.subject.x;
+                    event.subject.fy = event.subject.y;
+                }
+
+                function dragged(event) {
+                    event.subject.fx = event.x;
+                    event.subject.fy = event.y;
+                }
+
+                function dragended(event) {
+                    if (!event.active) simulation.alphaTarget(0);
+                    event.subject.fx = null;
+                    event.subject.fy = null;
+                }
+
+                return d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended);
+            }
+        }
+    </script>
+</body>
+</html>

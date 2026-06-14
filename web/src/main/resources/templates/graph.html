@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <div th:fragment="graph">
+        <div th:if="${cycles != null and !cycles.empty}" class="cycle-banner">
+            <div class="cycle-banner-title">
+                <i class="fas fa-triangle-exclamation"></i>
+                <span th:text="|Circular dependencies detected (${cycles.size()})|">Circular dependencies detected</span>
+            </div>
+            <ul class="cycle-list">
+                <li th:each="cycle : ${cycles}" th:text="${#strings.listJoin(cycle, ' → ')}">a → b → a</li>
+            </ul>
+        </div>
+        <div class="container">
+            <div class="chart-container">
+                <canvas id="metricsChart"></canvas>
+            </div>
+            <div class="package-details">
+                <h3><i class="fas fa-circle-info"></i> Package Details</h3>
+                <div id="packageDetailsContent">
+                    <div class="empty-state">
+                        <i class="fas fa-hand-pointer"></i>
+                        Click on a data point in the chart to view package details.
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script th:inline="javascript">
+            // Define these functions in the global scope
+            function toggleDependencyGroup(element) {
+                const list = element.nextElementSibling;
+                list.style.display = list.style.display === 'none' ? 'block' : 'none';
+            }
+
+            function showMoreDependencies(element, type) {
+                const list = element.parentElement;
+                const group = list.parentElement;
+                const allDeps = groupDependencies(window.currentDetails[type + 'Dependencies'])[group.firstElementChild.textContent.split(' ')[0]];
+                list.innerHTML = allDeps.map(dep => `<li>${dep}</li>`).join('');
+            }
+
+            function filterDependencies(type) {
+                const input = document.getElementById(type + 'Search');
+                const filter = input.value.toLowerCase();
+                const lists = document.getElementsByClassName(type + '-list');
+                
+                for (const list of lists) {
+                    const items = list.getElementsByTagName('li');
+                    let visibleCount = 0;
+                    for (const item of items) {
+                        if (item.classList.contains('show-more')) continue;
+                        if (item.textContent.toLowerCase().indexOf(filter) > -1) {
+                            item.style.display = "";
+                            visibleCount++;
+                        } else {
+                            item.style.display = "none";
+                        }
+                    }
+                    list.parentElement.style.display = visibleCount > 0 ? "" : "none";
+                }
+            }
+
+            function groupDependencies(dependencies) {
+                const grouped = {};
+                for (const dep of dependencies) {
+                    const topLevelPackage = dep.split('.').slice(0, 3).join('.');
+                    if (!grouped[topLevelPackage]) {
+                        grouped[topLevelPackage] = [];
+                    }
+                    grouped[topLevelPackage].push(dep);
+                }
+                return grouped;
+            }
+
+            (function() {
+                const metrics = /*[[${metrics}]]*/ {};
+                window.metricsData = metrics; // Store metrics data globally
+                const ctx = document.getElementById('metricsChart').getContext('2d');
+
+                // Dark theme defaults for the chart
+                Chart.defaults.color = '#cbd5e1';
+                Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.08)';
+                Chart.defaults.font.family = 'Inter';
+                
+                const data = {
+                    datasets: [
+                        {
+                            label: 'Main Sequence',
+                            data: [
+                                { x: 0, y: 1 },
+                                { x: 1, y: 0 }
+                            ],
+                            borderColor: 'rgba(165, 180, 252, 0.85)',
+                            borderWidth: 2,
+                            borderDash: [6, 4],
+                            pointRadius: 0,
+                            type: 'line',
+                            order: 1
+                        },
+                        {
+                            label: 'Packages',
+                            data: Object.entries(metrics).map(([pkg, values]) => ({
+                                x: values.instability,
+                                y: values.abstractness,
+                                packageName: pkg,
+                                distance: values.distance
+                            })),
+                            backgroundColor: (context) => {
+                                const distance = context.raw.distance;
+                                return distance <= 0.5 ? 'rgba(16, 185, 129, 0.7)' : 'rgba(239, 68, 68, 0.7)';
+                            },
+                            borderColor: (context) => {
+                                const distance = context.raw.distance;
+                                return distance <= 0.5 ? 'rgba(5, 150, 105, 1)' : 'rgba(220, 38, 38, 1)';
+                            },
+                            borderWidth: 1.5,
+                            pointRadius: 8,
+                            pointHoverRadius: 11,
+                            type: 'scatter',
+                            order: 2
+                        }
+                    ]
+                };
+
+                const zonePlugin = {
+                    id: 'zonePlugin',
+                    beforeDraw: (chart) => {
+                        const ctx = chart.ctx;
+                        const xAxis = chart.scales.x;
+                        const yAxis = chart.scales.y;
+
+                        const drawSemicircle = (centerX, centerY, radius, startAngle, endAngle, color) => {
+                            ctx.beginPath();
+                            ctx.moveTo(centerX, centerY);
+                            ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                            ctx.lineTo(centerX, centerY);
+                            ctx.fillStyle = color;
+                            ctx.fill();
+                        };
+
+                        const drawTriangleByValue = (chart, x0, y0, x1, y1, x2, y2, color) => {
+                            const ctx = chart.ctx;
+                            const xAxis = chart.scales.x;
+                            const yAxis = chart.scales.y;
+
+                            ctx.beginPath();
+                            ctx.moveTo(xAxis.getPixelForValue(x0), yAxis.getPixelForValue(y0));
+                            ctx.lineTo(xAxis.getPixelForValue(x1), yAxis.getPixelForValue(y1));
+                            ctx.lineTo(xAxis.getPixelForValue(x2), yAxis.getPixelForValue(y2));
+                            ctx.closePath();
+                            ctx.fillStyle = color;
+                            ctx.fill();
+                        };
+                        const drawSafeZone = (chart, tolerance, color) => {
+                            const ctx = chart.ctx;
+                            const xAxis = chart.scales.x;
+                            const yAxis = chart.scales.y;
+                            const { left, top, right, bottom } = chart.chartArea;
+
+                            const step = 0.01;
+                            const epsilon = 0.002;
+
+                            const lower = [];
+                            for (let x = 0; x <= 1; x += step) {
+                                let y = 1 - tolerance - x;
+                                y = Math.max(-epsilon, Math.min(1 + epsilon, y));
+                                lower.push({ x, y });
+                            }
+
+                            const upper = [];
+                            for (let x = 1; x >= 0; x -= step) {
+                                let y = 1 + tolerance - x;
+                                y = Math.max(-epsilon, Math.min(1 + epsilon, y));
+                                upper.push({ x, y });
+                            }
+
+                            // ✅ Thêm điểm đầu và cuối thủ công
+                            lower.unshift({ x: 0, y: 1 }); // Đảm bảo dính sát mép trên bên trái
+                            upper.push({ x: 1, y: 0 });    // Đảm bảo dính sát đáy dưới bên phải
+
+                            const allPoints = lower.concat(upper);
+
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.rect(left, top, right - left, bottom - top);
+                            ctx.clip();
+
+                            ctx.beginPath();
+                            for (let i = 0; i < allPoints.length; i++) {
+                                const px = xAxis.getPixelForValue(allPoints[i].x);
+                                const py = yAxis.getPixelForValue(allPoints[i].y);
+                                if (i === 0) ctx.moveTo(px, py);
+                                else ctx.lineTo(px, py);
+                            }
+                            ctx.closePath();
+                            ctx.fillStyle = color;
+                            ctx.fill();
+                            ctx.restore();
+                        };
+
+                        const drawWarningZonePartial = (chart, dMin, dMax, color) => {
+                            const ctx = chart.ctx;
+                            const xAxis = chart.scales.x;
+                            const yAxis = chart.scales.y;
+                            const { left, top, right, bottom } = chart.chartArea;
+
+                            const step = 0.005;
+
+                            const drawStrip = (lowerFn, upperFn) => {
+                                const lower = [];
+                                const upper = [];
+
+                                for (let x = 0; x <= 1; x += step) {
+                                    const yLower = lowerFn(x);
+                                    const yUpper = upperFn(x);
+                                    if (yLower >= 0 && yLower <= 1)
+                                        lower.push({ x, y: yLower });
+                                    if (yUpper >= 0 && yUpper <= 1)
+                                        upper.unshift({ x, y: yUpper });
+                                }
+
+                                // Nối vùng
+                                const all = lower.concat(upper);
+
+                                ctx.beginPath();
+                                for (let i = 0; i < all.length; i++) {
+                                    const px = xAxis.getPixelForValue(all[i].x);
+                                    const py = yAxis.getPixelForValue(all[i].y);
+                                    if (i === 0) ctx.moveTo(px, py);
+                                    else ctx.lineTo(px, py);
+                                }
+                                ctx.closePath();
+                                ctx.fill();
+                            };
+
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.rect(left, top, right - left, bottom - top);
+                            ctx.clip();
+
+                            ctx.fillStyle = color;
+
+                            // Bên trái: D ∈ [0.2, 0.6] → A + I ∈ [0.4, 0.8]
+                            drawStrip(
+                                x => 0.4 - x,
+                                x => 0.8 - x
+                            );
+
+                            // Bên phải: D ∈ [0.2, 0.6] → A + I ∈ [1.2, 1.6]
+                            drawStrip(
+                                x => 1.2 - x,
+                                x => 1.6 - x
+                            );
+
+                            ctx.restore();
+                        };
+                        // Zone of Pain (bottom-left corner)
+                        const painCenterX = xAxis.getPixelForValue(0);
+                        const painCenterY = yAxis.getPixelForValue(0);
+                        const painRadius = xAxis.getPixelForValue(0.4) - painCenterX;
+                        // drawSemicircle(painCenterX, painCenterY, painRadius, 3*Math.PI/2, 0, 'rgba(231, 76, 60, 0.1)');
+                        drawTriangleByValue(chart, 0, 0, 0.4, 0, 0, 0.4, 'rgba(248, 113, 113, 0.18)');
+
+                        // Zone of Uselessness (top-right corner)
+                        const uselessCenterX = xAxis.getPixelForValue(1);
+                        const uselessCenterY = yAxis.getPixelForValue(1);
+                        const uselessRadius =  uselessCenterX - xAxis.getPixelForValue(0.6);
+                        // drawSemicircle(uselessCenterX, uselessCenterY, uselessRadius, 2*Math.PI, Math.PI, 'rgba(52, 152, 219, 0.1)');
+                        drawTriangleByValue(chart, 1, 1, 0.6, 1, 1, 0.6, 'rgba(96, 165, 250, 0.18)');
+
+                        drawSafeZone(chart, 0.2, 'rgba(52, 211, 153, 0.16)'); // vùng |D| <= 0.2
+                        drawWarningZonePartial(chart, 0.2, 0.6, 'rgba(251, 191, 36, 0.16)');
+                        // Labels
+                        ctx.fillStyle = 'rgba(226, 232, 240, 0.85)';
+                        ctx.font = '600 13px Inter';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('Zone of Pain', xAxis.getPixelForValue(0.15), yAxis.getPixelForValue(0.15));
+                        ctx.fillText('Zone of Uselessness', xAxis.getPixelForValue(0.85), yAxis.getPixelForValue(0.85));
+
+                        ctx.fillText('Warning Zone', xAxis.getPixelForValue(0.3), yAxis.getPixelForValue(0.3));
+                        ctx.fillText('Warning Zone', xAxis.getPixelForValue(0.6), yAxis.getPixelForValue(0.8));
+
+                        ctx.fillText('Safe Zone', xAxis.getPixelForValue(0.3), yAxis.getPixelForValue(0.6));
+                    }
+                };
+
+                const config = {
+                    type: 'scatter',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        aspectRatio: 1,
+                        scales: {
+                            x: {
+                                type: 'linear',
+                                position: 'bottom',
+                                title: {
+                                    display: true,
+                                    text: 'Instability',
+                                    font: {
+                                        family: 'Inter',
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                },
+                                min: 0,
+                                max: 1
+                            },
+                            y: {
+                                type: 'linear',
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: 'Abstractness',
+                                    font: {
+                                        family: 'Inter',
+                                        size: 14,
+                                        weight: 'bold'
+                                    }
+                                },
+                                min: 0,
+                                max: 1
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => {
+                                        const point = context.raw;
+                                        if (point.packageName) {
+                                            return `${point.packageName} (I: ${point.x.toFixed(2)}, A: ${point.y.toFixed(2)}, D: ${point.distance.toFixed(2)})`;
+                                        }
+                                        return '';
+                                    }
+                                }
+                            },
+                            legend: {
+                                labels: {
+                                    font: {
+                                        family: 'Inter',
+                                        size: 12
+                                    },
+                                    filter: (legendItem) => legendItem.text !== 'Main Sequence'
+                                }
+                            }
+                        },
+                        onClick: (event, elements) => {
+                            if (elements.length > 0) {
+                                const dataIndex = elements[0].index;
+                                const packageName = data.datasets[1].data[dataIndex].packageName;
+                                displayPackageDetails(metrics[packageName]);
+                            }
+                        }
+                    },
+                    plugins: [zonePlugin]
+                };
+
+                // Create the chart
+                window.metricsChart = new Chart(ctx, config);
+
+                function displayPackageDetails(details) {
+                    const content = document.getElementById('packageDetailsContent');
+                    content.innerHTML = `
+                        <h4>${details.packageName}</h4>
+                        <p class="tooltip"><i class="fas fa-cogs"></i><strong>Ce (Efferent Couplings):</strong> ${details.ce}
+                            <span class="tooltiptext">The number of classes in other packages that the classes in a package depend upon is an indicator of the package's dependence on externalities.</span>
+                        </p>
+                        <p class="tooltip"><i class="fas fa-cogs"></i><strong>Ca (Afferent Couplings):</strong> ${details.ca}
+                            <span class="tooltiptext">The number of classes in other packages that depend upon classes within the package is an indicator of the package's responsibility.</span>
+                        </p>
+                        <p><i class="fas fa-cube"></i><strong>Abstract Classes:</strong> ${details.abstractClassCount}</p>
+                        <p><i class="fas fa-cubes"></i><strong>Total Classes:</strong> ${details.totalClassCount}</p>
+                        <p class="tooltip"><i class="fas fa-chart-line"></i><strong>Abstractness (A):</strong> ${details.abstractness.toFixed(4)}
+                            <span class="tooltiptext">The ratio of the number of abstract classes (and interfaces) in the analyzed package to the total number of classes in the analyzed package.</span>
+                        </p>
+                        <p class="tooltip"><i class="fas fa-chart-line"></i><strong>Instability (I):</strong> ${details.instability.toFixed(4)}
+                            <span class="tooltiptext">The ratio of efferent coupling (Ce) to total coupling (Ce + Ca) such that I = Ce / (Ce + Ca). This metric is an indicator of the package's resilience to change.</span>
+                        </p>
+                        <p class="tooltip"><i class="fas fa-location"></i><strong>Distance from Main Sequence (D):</strong> ${details.distance.toFixed(4)}
+                            <span class="tooltiptext">The perpendicular distance of a package from the idealized line A + I = 1. D is calculated as D = | A + I - 1 |.</span>
+                        </p>
+                        <div class="dependencies-container">
+                            <h5>Efferent Dependencies</h5>
+                            <input type="text" id="efferentSearch" placeholder="Search efferent dependencies..." onkeyup="filterDependencies('efferent')">
+                            ${createDependencyList(details.efferentDependencies, 'efferent')}
+                            <h5>Afferent Dependencies</h5>
+                            <input type="text" id="afferentSearch" placeholder="Search afferent dependencies..." onkeyup="filterDependencies('afferent')">
+                            ${createDependencyList(details.afferentDependencies, 'afferent')}
+                        </div>
+                    `;
+                    window.currentDetails = details;
+                    // Ensure efferent dependencies are stored in metricsData
+                    window.metricsData[details.packageName].efferentDependencies = details.efferentDependencies;
+                }
+
+                function createDependencyList(dependencies, type) {
+                    const groupedDeps = groupDependencies(dependencies);
+                    let html = '';
+                    for (const [topLevelPackage, deps] of Object.entries(groupedDeps)) {
+                        html += `
+                            <div class="dependency-group">
+                                <h6 onclick="toggleDependencyGroup(this)">${topLevelPackage} (${deps.length})</h6>
+                                <ul class="dependency-list ${type}-list" style="display: none;">
+                                    ${deps.slice(0, 10).map(dep => `<li>${dep}</li>`).join('')}
+                                    ${deps.length > 10 ? `
+                                        <li class="show-more" onclick="showMoreDependencies(this, '${type}')">
+                                            Show ${deps.length - 10} more...
+                                        </li>
+                                    ` : ''}
+                                </ul>
+                            </div>
+                        `;
+                    }
+                    return html;
+                }
+            })();
+        </script>
+    </div>
+    <div th:fragment="error">
+        <p th:text="${error}" style="color: #e74c3c; font-weight: bold; text-align: center; margin-top: 20px;"></p>
+    </div>
+</body>
+</html>

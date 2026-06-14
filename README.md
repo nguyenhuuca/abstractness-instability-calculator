@@ -37,25 +37,73 @@ Dependency Visualization
    cd abstractness-instability-calculator
    ```
 
-3. Build the project:
+3. Build the project (reactor builds both modules):
    ```
-   mvn clean install
+   mvn clean package
    ```
+   This produces two artifacts:
+   - `web/target/aic-web.jar` — the Spring Boot web UI (fat jar)
+   - `core/target/aic-cli.jar` — a lean, Spring-free CLI for CI (~2.5 MB)
 
 ## Usage
 
-1. Run the application:
+1. Run the web application:
    ```
-   java -jar target/abstractness-instability-calculator-1.0-SNAPSHOT.jar
+   java -jar web/target/aic-web.jar
    ```
 
-2. Open a web browser and go to `http://localhost:8080`
+2. Open a web browser and go to `http://localhost:8081`
 
 3. Enter the path to your Java project in the input field
 
 4. Click "Scan" to analyze the project
 
 5. View the results in the interactive scatter plot
+
+> The web UI also exposes `GET /api/metrics?path=<project-path>`, which returns the metrics as a
+> JSON envelope (`generatedAt`, `projectPath`, `toolVersion`, `packageCount`, `summary`, `packages`)
+> for archival or verification by another system.
+
+## CI / CLI usage
+
+Run the analyzer headless (no web server) to gate a build on architecture quality. Remember the
+target project must be **compiled** first (the tool reads `.class` bytecode).
+
+```
+java -jar core/target/aic-cli.jar \
+     --scan=/path/to/project [--fail-on-distance=0.7] [--no-cycles] [--output=metrics.json]
+```
+
+The CLI is a lean, Spring-free jar (~2.5 MB) that starts in well under a second — no web server is
+started.
+
+- Prints the JSON metrics envelope (with a `gate` section) to stdout, or to `--output=<file>`.
+- Exit code: `0` = all gates passed, `1` = a gate was violated, `2` = scan error.
+
+The CLI's quality gates default in code (`max-package-distance` @ 0.7 enabled, the rest off) and are
+overridden by flags (`--fail-on-distance`, `--no-cycles`). The available gates:
+
+| Gate | Fails the build when… |
+|------|------------------------|
+| `max-package-distance` | any package's distance `D` exceeds `threshold` (default `0.7`) |
+| `forbidden-zones` | any package falls in the Zone of Pain or Zone of Uselessness |
+| `max-average-distance` | the average `D` across packages exceeds `threshold` |
+| `no-cycles` | any circular dependency between packages is detected |
+
+The JSON envelope also includes a `cycles` array (each entry is a group of packages that form a
+dependency cycle), and the web UI shows a warning banner listing them after a scan.
+
+`--fail-on-distance=<d>` enables and overrides the per-package distance threshold from the command line.
+
+Example GitHub Actions step:
+
+```yaml
+- name: Architecture quality gate
+  run: |
+    mvn -B -q clean package -DskipTests
+    java -jar core/target/aic-cli.jar \
+         --scan="$GITHUB_WORKSPACE" --fail-on-distance=0.7
+```
 
 ## Nix Flake
 
@@ -71,7 +119,7 @@ Dependency Visualization
 
 3. Run application
    ```
-   java -jar target/abstractness-instability-calculator*.jar
+   java -jar web/target/aic-web.jar
    ```
 
 ## Understanding the Results
