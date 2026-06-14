@@ -1,6 +1,6 @@
 # Abstractness and Instability Metrics Calculator
 
-This application calculates abstractness and instability metrics for Java, Spring Boot projects, helping developers analyze the structure and dependencies of their codebase.
+This application calculates abstractness and instability metrics for Java, Spring Boot projects, helping developers analyze the structure and dependencies of their codebase. It ships both an **interactive web UI** and a **headless CLI** that can gate a build in CI when package design regresses.
 
 It follows the principles of Spring Modulith by analyzing the [application module packages](https://docs.spring.io/spring-modulith/reference/fundamentals.html#modules.simple). These are direct sub-packages of the _main_ package that contains the `@SpringBootApplication` annotated class. Ideally, these packages are expected to be functional layers rather than technical layers (controller, services, repositories etc.).
 
@@ -14,11 +14,19 @@ Dependency Visualization
 
 ## Features
 
-- Scans Spring Boot projects to identify packages and their relationships
-- Calculates abstractness, instability, and distance from the main sequence for each package
-- Provides a web interface for easy project analysis
-- Visualizes results using an interactive scatter plot
-- Dependency visualization
+- **Web UI** — scan a project and explore an interactive scatter plot of abstractness vs. instability, with a dark theme suited for presentations
+- **Per-package metrics** — abstractness (A), instability (I), distance from the main sequence (D), and Ce/Ca couplings
+- **Dependency visualization** — interactive force-directed graph of each package's dependencies
+- **Circular dependency detection** — finds package dependency cycles (Tarjan SCC) and flags them in the UI, the JSON output, and as a CI gate
+- **JSON export** — `GET /api/metrics` or an in-browser button emits a self-describing metrics envelope for archival or verification by another system
+- **Headless CLI + CI quality gates** — run without a web server and fail a build when architecture quality regresses (per-package distance, forbidden zones, average distance, and no-cycles gates)
+
+## Project structure
+
+This is a multi-module Maven build:
+
+- **`core`** — the Spring-free analysis engine and the headless CLI (`cli.CliMain`); shaded into `core/target/aic-cli.jar` (~2.5 MB).
+- **`web`** — the Spring Boot web UI, depending on `core`; packaged as `web/target/aic-web.jar`.
 
 ## Prerequisites
 
@@ -29,7 +37,7 @@ Dependency Visualization
 
 1. Clone the repository:
    ```
-   git clone https://github.com/xsreality/abstractness-instability-calculator.git
+   git clone https://github.com/nguyenhuuca/abstractness-instability-calculator.git
    ```
 
 2. Navigate to the project directory:
@@ -178,6 +186,8 @@ The plot visualizes these metrics and highlights two important zones:
 3. **Main Sequence** (Diagonal line from top-left to bottom-right):
    - Represents an ideal balance between abstractness and instability
    - Packages should aim to be close to this line
+
+The chart also shades a green **Safe Zone** band around the Main Sequence (|D| ≤ 0.2) and an amber **Warning Zone** band further out, so you can see at a glance how far each package drifts.
 
 ### Color Coding
 - **Green**: Packages close to the Main Sequence (D ≤ 0.5)
