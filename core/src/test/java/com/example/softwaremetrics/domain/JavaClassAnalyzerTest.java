@@ -175,6 +175,50 @@ class JavaClassAnalyzerTest {
         assertFalse(dead.unusedClasses().contains("com.app.service.InviteService"));
     }
 
+    @Test
+    void usedAnnotationCountsAsReferenced(@TempDir Path tempDir) throws IOException {
+        writeAnnotation(tempDir, "com/app/aop/AuditLog.class", "com.app.aop.AuditLog");
+        writeClassWithMethodAnnotation(tempDir, "com/app/service/Svc.class", "com.app.service.Svc", "com.app.aop.AuditLog");
+
+        List<ClassInfo> model = javaClassAnalyzer.analyzeProject(tempDir, "com.app");
+
+        ClassInfo svc = model.stream().filter(c -> c.fqcn().endsWith(".Svc")).findFirst().orElseThrow();
+        assertTrue(svc.typeRefs().contains("com.app.aop.AuditLog"), "the applied annotation must be a reference");
+
+        DeadCodeResult dead = new DeadCodeDetector().detect(model);
+        assertFalse(dead.unusedClasses().contains("com.app.aop.AuditLog"));
+    }
+
+    private void writeAnnotation(Path baseDir, String classPath, String className) throws IOException {
+        ClassWriter cw = new ClassWriter(0);
+        cw.visit(Opcodes.V1_8,
+                Opcodes.ACC_PUBLIC | Opcodes.ACC_ANNOTATION | Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE,
+                className.replace('.', '/'), null, "java/lang/Object",
+                new String[]{"java/lang/annotation/Annotation"});
+        cw.visitEnd();
+        writeBytes(baseDir, classPath, cw.toByteArray());
+    }
+
+    private void writeClassWithMethodAnnotation(Path baseDir, String classPath, String className, String annotationName) throws IOException {
+        ClassWriter cw = new ClassWriter(0);
+        cw.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC, className.replace('.', '/'), null, "java/lang/Object", null);
+        MethodVisitor ctor = cw.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
+        ctor.visitCode();
+        ctor.visitVarInsn(Opcodes.ALOAD, 0);
+        ctor.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        ctor.visitInsn(Opcodes.RETURN);
+        ctor.visitMaxs(1, 1);
+        ctor.visitEnd();
+        MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, "doWork", "()V", null, null);
+        mv.visitAnnotation("L" + annotationName.replace('.', '/') + ";", true).visitEnd();
+        mv.visitCode();
+        mv.visitInsn(Opcodes.RETURN);
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+        cw.visitEnd();
+        writeBytes(baseDir, classPath, cw.toByteArray());
+    }
+
     private void writeInterface(Path baseDir, String classPath, String className) throws IOException {
         ClassWriter cw = new ClassWriter(0);
         cw.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE,

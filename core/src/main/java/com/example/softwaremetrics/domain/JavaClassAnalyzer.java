@@ -228,6 +228,10 @@ public class JavaClassAnalyzer {
             for (MethodNode method : classNode.methods) {
                 collectRawReferences(method, typeRefs, methodRefs);
                 hasMain = hasMain || isMainMethod(method);
+                addAnnotationTypes(method.visibleAnnotations, typeRefs);
+                addAnnotationTypes(method.invisibleAnnotations, typeRefs);
+                addParameterAnnotationTypes(method.visibleParameterAnnotations, typeRefs);
+                addParameterAnnotationTypes(method.invisibleParameterAnnotations, typeRefs);
             }
 
             // Superclass, implemented interfaces, and field types are references too — without these,
@@ -243,8 +247,13 @@ public class JavaClassAnalyzer {
             if (classNode.fields != null) {
                 for (FieldNode field : classNode.fields) {
                     typeRefs.add(stripArraySuffix(Type.getType(field.desc).getClassName()));
+                    addAnnotationTypes(field.visibleAnnotations, typeRefs);
+                    addAnnotationTypes(field.invisibleAnnotations, typeRefs);
                 }
             }
+            // Annotation types applied to the class itself (e.g. a custom @AuditLog used via AOP).
+            addAnnotationTypes(classNode.visibleAnnotations, typeRefs);
+            addAnnotationTypes(classNode.invisibleAnnotations, typeRefs);
 
             boolean entryPoint = hasMain || hasEntryAnnotation(classNode);
 
@@ -307,6 +316,58 @@ public class JavaClassAnalyzer {
             }
         }
         return false;
+    }
+
+    /**
+     * Adds each annotation's type (e.g. a custom {@code @AuditLog}) and any class literals inside its
+     * values (e.g. {@code @Constraint(validatedBy = FooValidator.class)}) to the reference set.
+     */
+    private void addAnnotationTypes(List<AnnotationNode> annotations, Set<String> typeRefs) {
+        if (annotations == null) {
+            return;
+        }
+        for (AnnotationNode a : annotations) {
+            if (a.desc != null) {
+                typeRefs.add(Type.getType(a.desc).getClassName());
+            }
+            addAnnotationValues(a.values, typeRefs);
+        }
+    }
+
+    /** Walks an annotation's flattened name/value list, collecting class literals and enum/nested types. */
+    private void addAnnotationValues(List<Object> values, Set<String> typeRefs) {
+        if (values == null) {
+            return;
+        }
+        for (Object value : values) {
+            addAnnotationValue(value, typeRefs);
+        }
+    }
+
+    private void addAnnotationValue(Object value, Set<String> typeRefs) {
+        if (value instanceof Type type) {                       // a class literal, e.g. Foo.class
+            typeRefs.add(stripArraySuffix(type.getClassName()));
+        } else if (value instanceof AnnotationNode nested) {     // a nested annotation
+            if (nested.desc != null) {
+                typeRefs.add(Type.getType(nested.desc).getClassName());
+            }
+            addAnnotationValues(nested.values, typeRefs);
+        } else if (value instanceof List<?> list) {              // an array-valued member
+            for (Object item : list) {
+                addAnnotationValue(item, typeRefs);
+            }
+        } else if (value instanceof String[] enumValue && enumValue.length == 2) {  // {enumDesc, name}
+            typeRefs.add(Type.getType(enumValue[0]).getClassName());
+        }
+    }
+
+    private void addParameterAnnotationTypes(List<AnnotationNode>[] parameterAnnotations, Set<String> typeRefs) {
+        if (parameterAnnotations == null) {
+            return;
+        }
+        for (List<AnnotationNode> annotations : parameterAnnotations) {
+            addAnnotationTypes(annotations, typeRefs);
+        }
     }
 
     private boolean isNotTestClass(Path path) {
