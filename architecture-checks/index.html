@@ -16,7 +16,7 @@
         <link rel="prev" href="../cli-and-ci/">
       
       
-        <link rel="next" href="../json-export/">
+        <link rel="next" href="../configuration/">
       
       
         
@@ -421,6 +421,8 @@
       
         
       
+        
+      
     
     
     
@@ -656,6 +658,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -968,6 +998,11 @@ fully-qualified class-name regex, so one mechanism covers both granularities.</p
 </code></pre></div>
 <p>In the <strong>web UI</strong>, pick a template from the <em>Architecture</em> dropdown next to the path field; the result
 shows as a banner (green when compliant, red listing violations).</p>
+<div class="admonition tip">
+<p class="admonition-title">Or let the project own its rules</p>
+<p>A project can enable the architecture check (with a template or an inline spec) in its
+<a href="../configuration/"><code>aic-check.yaml</code></a> — then no <code>--arch</code> flag or dropdown selection is needed.</p>
+</div>
 <h2 id="built-in-templates">Built-in templates<a class="headerlink" href="#built-in-templates" title="Permanent link">&para;</a></h2>
 <table>
 <thead>

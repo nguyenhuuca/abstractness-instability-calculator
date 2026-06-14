@@ -421,6 +421,8 @@
       
         
       
+        
+      
     
     
     
@@ -631,6 +633,34 @@
     
   
     Architecture Checks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project Configuration
   
 
     
@@ -999,9 +1029,14 @@ Spring-free jar (~2.8 MB) that starts in well under a second.</p>
 </tr>
 </tbody>
 </table>
+<div class="admonition tip">
+<p class="admonition-title">Configure once, in the project</p>
+<p>Instead of passing flags every run, a project can ship an <code>aic-check.yaml</code> that defines its gates
+and architecture — see <a href="../configuration/">Project Configuration</a>. CI can then run a bare <code>--scan</code>.</p>
+</div>
 <h2 id="quality-gates">Quality gates<a class="headerlink" href="#quality-gates" title="Permanent link">&para;</a></h2>
-<p>Gate defaults live in code (<code>max-package-distance</code> @ 0.7 enabled, the rest off) and are overridden by
-flags.</p>
+<p>Gate defaults live in code (<code>max-package-distance</code> @ 0.7 enabled, the rest off), are overridden by a
+project's <code>aic-check.yaml</code>, and finally by these flags.</p>
 <table>
 <thead>
 <tr>

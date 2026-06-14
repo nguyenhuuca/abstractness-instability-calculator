@@ -13,26 +13,28 @@
       
       
       
+        <link rel="prev" href="../architecture-checks/">
       
-        <link rel="next" href="getting-started/">
+      
+        <link rel="next" href="../json-export/">
       
       
         
       
       
-      <link rel="icon" href="assets/images/favicon.png">
+      <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
     
     
       
-        <title>Abstractness & Instability Calculator</title>
+        <title>Project Configuration - Abstractness & Instability Calculator</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
       
         
-        <link rel="stylesheet" href="assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
 
@@ -51,7 +53,7 @@
       
     
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -76,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#abstractness-instability-calculator" class="md-skip">
+        <a href="#project-configuration-aic-checkyaml" class="md-skip">
           Skip to content
         </a>
       
@@ -90,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="Abstractness &amp; Instability Calculator" class="md-header__button md-logo" aria-label="Abstractness & Instability Calculator" data-md-component="logo">
+    <a href=".." title="Abstractness &amp; Instability Calculator" class="md-header__button md-logo" aria-label="Abstractness & Instability Calculator" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -110,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Home
+              Project Configuration
             
           </span>
         </div>
@@ -221,11 +223,9 @@
   
   
   
-    
   
-  
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="." class="md-tabs__link">
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
         
   
   
@@ -244,7 +244,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="getting-started/" class="md-tabs__link">
+      <a href="../getting-started/" class="md-tabs__link">
         
   
   
@@ -261,11 +261,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="metrics/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../metrics/" class="md-tabs__link">
           
   
   
@@ -287,7 +289,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="project-structure/" class="md-tabs__link">
+        <a href="../project-structure/" class="md-tabs__link">
           
   
   
@@ -323,7 +325,7 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="Abstractness &amp; Instability Calculator" class="md-nav__button md-logo" aria-label="Abstractness & Instability Calculator" data-md-component="logo">
+    <a href=".." title="Abstractness &amp; Instability Calculator" class="md-nav__button md-logo" aria-label="Abstractness & Instability Calculator" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -350,37 +352,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Home
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="." class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
         
   
   
@@ -396,59 +371,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Features
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#how-a-scan-works" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        How a scan works
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#where-to-next" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Where to next
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -460,7 +382,7 @@
   
   
     <li class="md-nav__item">
-      <a href="getting-started/" class="md-nav__link">
+      <a href="../getting-started/" class="md-nav__link">
         
   
   
@@ -484,8 +406,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -503,19 +427,22 @@
     
     
       
+        
+        
+      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
@@ -533,7 +460,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -551,7 +478,7 @@
   
   
     <li class="md-nav__item">
-      <a href="metrics/" class="md-nav__link">
+      <a href="../metrics/" class="md-nav__link">
         
   
   
@@ -579,7 +506,7 @@
   
   
     <li class="md-nav__item">
-      <a href="cli-and-ci/" class="md-nav__link">
+      <a href="../cli-and-ci/" class="md-nav__link">
         
   
   
@@ -607,7 +534,7 @@
   
   
     <li class="md-nav__item">
-      <a href="architecture-checks/" class="md-nav__link">
+      <a href="../architecture-checks/" class="md-nav__link">
         
   
   
@@ -632,10 +559,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="configuration/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project Configuration
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -651,6 +605,70 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#precedence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Precedence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discovery
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#file-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File format
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-enforce-in-ci-with-no-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: enforce in CI with no flags
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -663,7 +681,7 @@
   
   
     <li class="md-nav__item">
-      <a href="json-export/" class="md-nav__link">
+      <a href="../json-export/" class="md-nav__link">
         
   
   
@@ -758,7 +776,7 @@
   
   
     <li class="md-nav__item">
-      <a href="project-structure/" class="md-nav__link">
+      <a href="../project-structure/" class="md-nav__link">
         
   
   
@@ -786,7 +804,7 @@
   
   
     <li class="md-nav__item">
-      <a href="contributing/" class="md-nav__link">
+      <a href="../contributing/" class="md-nav__link">
         
   
   
@@ -814,7 +832,7 @@
   
   
     <li class="md-nav__item">
-      <a href="web-ui/" class="md-nav__link">
+      <a href="../web-ui/" class="md-nav__link">
         
   
   
@@ -869,10 +887,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#features" class="md-nav__link">
+  <a href="#precedence" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Features
+        Precedence
       
     </span>
   </a>
@@ -880,10 +898,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-a-scan-works" class="md-nav__link">
+  <a href="#discovery" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How a scan works
+        Discovery
       
     </span>
   </a>
@@ -891,10 +909,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#where-to-next" class="md-nav__link">
+  <a href="#file-format" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Where to next
+        File format
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-enforce-in-ci-with-no-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: enforce in CI with no flags
       
     </span>
   </a>
@@ -918,7 +947,7 @@
 
 
   
-    <a href="https://github.com/nguyenhuuca/abstractness-instability-calculator/edit/main/docs/index.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/nguyenhuuca/abstractness-instability-calculator/edit/main/docs/configuration.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -926,40 +955,55 @@
   
 
 
-<h1 id="abstractness-instability-calculator">Abstractness &amp; Instability Calculator<a class="headerlink" href="#abstractness-instability-calculator" title="Permanent link">&para;</a></h1>
-<p>A tool that computes Robert C. Martin's package design metrics — <strong>Abstractness (A)</strong>, <strong>Instability
-(I)</strong>, and <strong>Distance from the Main Sequence (D)</strong> — for Java / Spring Boot projects, and enforces
-architecture quality. It ships both an <strong>interactive web UI</strong> and a <strong>headless CLI</strong> that can gate a
-build in CI when package design regresses.</p>
-<p>It follows the <a href="https://docs.spring.io/spring-modulith/reference/fundamentals.html#modules.simple">Spring Modulith</a>
-idea of <em>application module packages</em> — the direct sub-packages of the package that holds the
-<code>@SpringBootApplication</code> class.</p>
-<h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
+<h1 id="project-configuration-aic-checkyaml">Project Configuration (<code>aic-check.yaml</code>)<a class="headerlink" href="#project-configuration-aic-checkyaml" title="Permanent link">&para;</a></h1>
+<p>A scanned project can carry its <strong>own check policy</strong> in an <code>aic-check.yaml</code> file that the tool
+auto-discovers (logback-style) — controlling all quality gates and the architecture check. This means
+CI can run a bare <code>--scan=&lt;path&gt;</code> and the project's own rules are applied.</p>
+<h2 id="precedence">Precedence<a class="headerlink" href="#precedence" title="Permanent link">&para;</a></h2>
+<p>Configuration is layered, lowest to highest:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>code defaults  &lt;  project aic-check.yaml  &lt;  CLI flags
+</code></pre></div>
+<p>So a project file overrides the built-in defaults, and a CLI flag (<code>--fail-on-distance</code>, <code>--no-cycles</code>,
+<code>--arch</code>) overrides the file for a one-off run.</p>
+<h2 id="discovery">Discovery<a class="headerlink" href="#discovery" title="Permanent link">&para;</a></h2>
+<p>The first existing of these, relative to the scanned project, is used:</p>
+<ol>
+<li><code>src/main/resources/aic-check.yaml</code> (or <code>.yml</code>)</li>
+<li><code>aic-check.yaml</code> (or <code>.yml</code>) at the project root</li>
+</ol>
+<h2 id="file-format">File format<a class="headerlink" href="#file-format" title="Permanent link">&para;</a></h2>
+<p>Every section and field is optional — anything omitted keeps its default.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">gates</span><span class="p">:</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">max-package-distance</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> enabled</span><span class="p">:</span><span class="w"> </span><span class="nv">true</span><span class="p p-Indicator">,</span><span class="nt">  threshold</span><span class="p">:</span><span class="w"> </span><span class="nv">0.7</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">forbidden-zones</span><span class="p">:</span><span class="w">      </span><span class="p p-Indicator">{</span><span class="nt"> enabled</span><span class="p">:</span><span class="w"> </span><span class="nv">false</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">max-average-distance</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> enabled</span><span class="p">:</span><span class="w"> </span><span class="nv">false</span><span class="p p-Indicator">,</span><span class="nt"> threshold</span><span class="p">:</span><span class="w"> </span><span class="nv">0.5</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">no-cycles</span><span class="p">:</span><span class="w">            </span><span class="p p-Indicator">{</span><span class="nt"> enabled</span><span class="p">:</span><span class="w"> </span><span class="nv">true</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="nt">architecture</span><span class="p">:</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="nt">template</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">layered</span><span class="w">          </span><span class="c1"># a built-in template (layered | hexagonal | onion) …</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="c1"># … OR inline the spec instead of a template:</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="c1"># spec:</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">  </span><span class="c1">#   name: Custom</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">  </span><span class="c1">#   components:</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">  </span><span class="c1">#     - { name: Web,     matches: [&#39;.*\.web\..*&#39;] }</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">  </span><span class="c1">#     - { name: Service, matches: [&#39;.*\.service\..*&#39;] }</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">  </span><span class="c1">#   access:</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">  </span><span class="c1">#     Web: [Service]</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">  </span><span class="c1">#     Service: []</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">  </span><span class="c1">#   options: { forbidCycles: true }</span>
+</code></pre></div>
 <ul>
-<li><strong>Web UI</strong> — scan a project and explore an interactive scatter plot of abstractness vs. instability, with a dark theme for presentations.</li>
-<li><strong>Per-package metrics</strong> — A, I, D plus Ce/Ca couplings.</li>
-<li><strong>Dependency visualization</strong> — interactive force-directed graph of each package's dependencies.</li>
-<li><strong>Circular dependency detection</strong> — finds package cycles (Tarjan SCC) and flags them in the UI, the JSON output, and as a CI gate.</li>
-<li><strong>JSON export</strong> — <code>GET /api/metrics</code> or an in-browser button emits a self-describing metrics envelope.</li>
-<li><strong>Headless CLI + CI quality gates</strong> — fail a build when architecture quality regresses (distance / zones / average / cycles).</li>
-<li><strong>Architecture conformance</strong> — enforce a YAML architecture spec (layered, hexagonal, onion, or your own).</li>
+<li><strong><code>gates</code></strong> — see <a href="../cli-and-ci/">CLI &amp; CI Gates</a> for what each gate means.</li>
+<li><strong><code>architecture</code></strong> — <code>enabled</code> plus either a built-in <code>template</code> or an inline <code>spec</code> (same schema as
+  <a href="../architecture-checks/">Architecture Checks</a>). <code>spec</code> wins if both are given.</li>
 </ul>
-<h2 id="how-a-scan-works">How a scan works<a class="headerlink" href="#how-a-scan-works" title="Permanent link">&para;</a></h2>
-<pre class="mermaid"><code>flowchart LR
-    A[Web Controller / CLI] --&gt; B[SpringBootPackageScanner]
-    B --&gt; C[PackageLocator]
-    B --&gt; D[PackageMetricsCalculator]
-    C --&gt; E[JavaClassAnalyzer]
-    D --&gt; E
-    E --&gt;|reads compiled .class bytecode via ASM| F[(Per-package metrics&lt;br/&gt;A, I, D, Ce, Ca)]</code></pre>
-<p>The analyzer reads <strong>compiled <code>.class</code> bytecode</strong> (via ASM), so the target project must be built first.</p>
-<h2 id="where-to-next">Where to next<a class="headerlink" href="#where-to-next" title="Permanent link">&para;</a></h2>
-<ul>
-<li><a href="getting-started/">Getting Started</a> — build and run the web app or the CLI.</li>
-<li><a href="metrics/">Understanding the Metrics</a> — what A, I, D mean and how to read the chart.</li>
-<li><a href="cli-and-ci/">CLI &amp; CI Gates</a> — fail a build on architectural regressions.</li>
-<li><a href="architecture-checks/">Architecture Checks</a> — enforce a layered/hexagonal/onion (or custom) design.</li>
-</ul>
+<h2 id="example-enforce-in-ci-with-no-flags">Example: enforce in CI with no flags<a class="headerlink" href="#example-enforce-in-ci-with-no-flags" title="Permanent link">&para;</a></h2>
+<p>Commit <code>src/main/resources/aic-check.yaml</code> to your project, then the CI step is simply:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>mvn<span class="w"> </span>-B<span class="w"> </span>package<span class="w"> </span>-DskipTests
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>java<span class="w"> </span>-jar<span class="w"> </span>aic-cli.jar<span class="w"> </span>--scan<span class="o">=</span>.
+</code></pre></div>
+<p>The gates and architecture come from the file; the process exits non-zero on any violation.</p>
 
 
 
@@ -1015,10 +1059,10 @@ idea of <em>application module packages</em> — the direct sub-packages of the 
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.indexes", "search.highlight", "search.suggest", "content.code.copy", "content.action.edit"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.indexes", "search.highlight", "search.suggest", "content.code.copy", "content.action.edit"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
       
         <script src="https://unpkg.com/mermaid@11/dist/mermaid.min.js"></script>
       
