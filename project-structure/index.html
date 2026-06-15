@@ -945,7 +945,7 @@
 <ul>
 <li><code>domain</code> — the analysis core:<ul>
 <li><code>JavaClassAnalyzer</code> — reads <code>.class</code> bytecode (ASM) to extract dependencies and class counts.</li>
-<li><code>PackageLocator</code> / <code>ProjectPathTraverser</code> — find the main package and module packages.</li>
+<li><code>PackageLocator</code> / <code>ProjectPathTraverser</code> — find the main package; <code>ModuleResolver</code> maps each class to its module package at the configured granularity (<code>analyze.depth</code> / <code>analyze.expand</code>).</li>
 <li><code>PackageMetricsCalculator</code> / <code>PackageMetrics</code> — aggregate into per-package A/I/D, Ce/Ca.</li>
 <li><code>CycleDetector</code> — Tarjan SCC over the package graph.</li>
 <li><code>GateConfig</code> / <code>ThresholdEvaluator</code> — quality gates.</li>
