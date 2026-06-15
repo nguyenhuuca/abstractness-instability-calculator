@@ -2,7 +2,7 @@
 
 This application calculates abstractness and instability metrics for Java, Spring Boot projects, helping developers analyze the structure and dependencies of their codebase. It ships both an **interactive web UI** and a **headless CLI** that can gate a build in CI when package design regresses.
 
-📖 **Full documentation:** <https://nguyenhuuca.github.io/abstractness-instability-calculator/>
+📖 **Full documentation:** <https://nguyenhuuca.github.io/aic/>
 
 It follows the principles of Spring Modulith by analyzing the [application module packages](https://docs.spring.io/spring-modulith/reference/fundamentals.html#modules.simple). These are direct sub-packages of the _main_ package that contains the `@SpringBootApplication` annotated class. Ideally, these packages are expected to be functional layers rather than technical layers (controller, services, repositories etc.).
 
@@ -39,12 +39,12 @@ This is a multi-module Maven build:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/nguyenhuuca/abstractness-instability-calculator.git
+   git clone https://github.com/nguyenhuuca/aic.git
    ```
 
 2. Navigate to the project directory:
    ```
-   cd abstractness-instability-calculator
+   cd aic
    ```
 
 3. Build the project (reactor builds both modules):

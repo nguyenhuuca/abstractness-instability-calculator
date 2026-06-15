@@ -1,6 +1,6 @@
 ---
 name: feature-dev
-description: Playbook for adding features or improvements to the abstractness-instability-calculator (a Spring Boot bytecode-analysis app). Use when the user wants to add a new metric, endpoint, UI element, configuration, or otherwise develop/improve this repository.
+description: Playbook for adding features or improvements to aic (a Spring Boot bytecode-analysis app). Use when the user wants to add a new metric, endpoint, UI element, configuration, or otherwise develop/improve this repository.
 ---
 
 # Developing features on the metrics calculator

@@ -17,8 +17,8 @@ java -jar web/target/aic-web.jar          # web UI on port 8081
 java -jar core/target/aic-cli.jar --scan=<path>   # headless CLI / CI
 ```
 
-- **`core`** (`abstractness-instability-calculator-core`) — Spring-free analysis engine + CLI. Produces a lean shaded jar `core/target/aic-cli.jar` (~2.5 MB). Deps: ASM, jackson-databind, slf4j.
-- **`web`** (`abstractness-instability-calculator-web`) — Spring Boot UI depending on `core`. Fat jar `web/target/aic-web.jar`.
+- **`core`** (`aic-core`) — Spring-free analysis engine + CLI. Produces a lean shaded jar `core/target/aic-cli.jar` (~2.5 MB). Deps: ASM, jackson-databind, slf4j.
+- **`web`** (`aic-web`) — Spring Boot UI depending on `core`. Fat jar `web/target/aic-web.jar`.
 
 The web app serves on **port 8081** (set in `web/.../application.yaml`; README's 8080 is stale). A Nix flake (`nix develop`) is provided for outdated Java/Maven.
 

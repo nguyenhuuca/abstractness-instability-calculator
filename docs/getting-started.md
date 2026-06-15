@@ -13,8 +13,8 @@ Java/Maven.
 This is a multi-module Maven build; the reactor builds both modules:
 
 ```bash
-git clone https://github.com/nguyenhuuca/abstractness-instability-calculator.git
-cd abstractness-instability-calculator
+git clone https://github.com/nguyenhuuca/aic.git
+cd aic
 mvn clean package
 ```
 

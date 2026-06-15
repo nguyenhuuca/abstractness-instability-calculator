@@ -1,8 +1,8 @@
 site_name: Abstractness & Instability Calculator
 site_description: Package abstractness/instability metrics, quality gates, cycle and architecture checks for Java/Spring Boot projects
 site_author: nguyenhuuca
-repo_url: https://github.com/nguyenhuuca/abstractness-instability-calculator
-repo_name: nguyenhuuca/abstractness-instability-calculator
+repo_url: https://github.com/nguyenhuuca/aic
+repo_name: nguyenhuuca/aic
 edit_uri: edit/main/docs/
 
 theme:
