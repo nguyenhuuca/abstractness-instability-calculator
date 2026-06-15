@@ -5,9 +5,10 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -33,35 +34,27 @@ public class PackageMetricsCalculator {
      * and 'Distance'.
      * @
      */
-    public Map<String, PackageMetrics> calculateMetrics(Path projectPath, List<String> modulePackages) {
-        logger.info("Calculating metrics for {} packages", modulePackages.size());
+    public Map<String, PackageMetrics> calculateMetrics(Path projectPath, ModuleResolver resolver) {
         Map<String, Set<String>> outgoingDependencies = new ConcurrentHashMap<>();
         Map<String, Set<String>> incomingDependencies = new ConcurrentHashMap<>();
         Map<String, Integer> abstractClassCount = new ConcurrentHashMap<>();
         Map<String, Integer> totalClassCount = new ConcurrentHashMap<>();
         Map<String, ComplexityStats> complexity = new ConcurrentHashMap<>();
 
-        initializeMaps(modulePackages, outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount);
+        javaClassAnalyzer.analyzeClasses(projectPath, resolver, outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount, complexity);
 
-        javaClassAnalyzer.analyzeClasses(projectPath, modulePackages, outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount, complexity);
+        // Modules emerge from the classes seen (no fixed list); union the keys touched by the analysis.
+        Set<String> modules = new TreeSet<>();
+        modules.addAll(totalClassCount.keySet());
+        modules.addAll(outgoingDependencies.keySet());
+        modules.addAll(incomingDependencies.keySet());
+        modules.addAll(complexity.keySet());
 
-        logger.debug("Dependency analysis completed. Calculating final metrics.");
-        return computeMetrics(modulePackages, outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount, complexity);
+        logger.debug("Dependency analysis completed for {} packages. Calculating final metrics.", modules.size());
+        return computeMetrics(modules, outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount, complexity);
     }
 
-    private void initializeMaps(List<String> modulePackages, Map<String, Set<String>> outgoingDependencies,
-                                Map<String, Set<String>> incomingDependencies,
-                                Map<String, Integer> abstractClassCount,
-                                Map<String, Integer> totalClassCount) {
-        modulePackages.forEach(pkg -> {
-            outgoingDependencies.put(pkg, ConcurrentHashMap.newKeySet());
-            incomingDependencies.put(pkg, ConcurrentHashMap.newKeySet());
-            abstractClassCount.put(pkg, 0);
-            totalClassCount.put(pkg, 0);
-        });
-    }
-
-    private Map<String, PackageMetrics> computeMetrics(List<String> modulePackages,
+    private Map<String, PackageMetrics> computeMetrics(Collection<String> modulePackages,
                                                        Map<String, Set<String>> outgoingDependencies,
                                                        Map<String, Set<String>> incomingDependencies,
                                                        Map<String, Integer> abstractClassCount,

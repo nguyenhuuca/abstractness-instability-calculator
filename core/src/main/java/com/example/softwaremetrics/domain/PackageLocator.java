@@ -3,12 +3,14 @@ package com.example.softwaremetrics.domain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.stream.Collectors;
 
+/**
+ * Locates the project's main package — the package of the class annotated with
+ * {@code @SpringBootApplication}. Module packages are derived from class names by {@link ModuleResolver}.
+ */
 public class PackageLocator {
 
     private static final Logger logger = LoggerFactory.getLogger(PackageLocator.class);
@@ -34,34 +36,5 @@ public class PackageLocator {
                 .map(javaClassAnalyzer::extractPackage)
                 .findFirst()
                 .orElse(null);
-    }
-
-    public List<String> findApplicationModulePackages(Path projectPath, String mainPackage) {
-        logger.debug("Finding top-level packages for main package: {} in project path: {}", mainPackage, projectPath);
-        Path srcMainJavaPath = projectPath.resolve("src/main/java");
-        if (!Files.exists(srcMainJavaPath)) {
-            logger.warn("src/main/java directory not found in project path: {}", projectPath);
-            return List.of();
-        }
-
-        List<Path> javaPackages = projectPathTraverser.findPackages(srcMainJavaPath);
-
-        int targetDepth = mainPackage.split("\\.").length + 1;
-
-        return javaPackages.stream()
-                .map(srcMainJavaPath::relativize)
-                .map(Path::toString)
-                .map(path -> path.replace(File.separator, "."))
-                .filter(pkg -> !pkg.isEmpty())
-                .filter(pkg -> isTopLevelPackage(pkg, mainPackage, targetDepth))
-                .distinct()
-                .sorted()
-                .collect(Collectors.toList());
-    }
-
-    private boolean isTopLevelPackage(String pkg, String mainPackage, int targetDepth) {
-        return pkg.split("\\.").length == targetDepth &&
-                pkg.startsWith(mainPackage + ".") &&
-                !pkg.equals(mainPackage);
     }
 }

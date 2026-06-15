@@ -70,14 +70,14 @@ class JavaClassAnalyzerTest {
         createTestClass(tempDir.resolve("target/test-classes"),
                 "com/example/subpackage/FooTest.class", "com.example.subpackage.FooTest", false, "com.example.subpackage.Bar");
 
-        List<String> packages = List.of("com.example.subpackage");
+        ModuleResolver resolver = new ModuleResolver("com.example", 1, Set.of());
         Map<String, Set<String>> outgoing = new ConcurrentHashMap<>();
         Map<String, Set<String>> incoming = new ConcurrentHashMap<>();
         Map<String, Integer> abstractCount = new HashMap<>();
         Map<String, Integer> totalCount = new HashMap<>();
         Map<String, ComplexityStats> complexity = new HashMap<>();
 
-        javaClassAnalyzer.analyzeClasses(tempDir, packages, outgoing, incoming, abstractCount, totalCount, complexity);
+        javaClassAnalyzer.analyzeClasses(tempDir, resolver, outgoing, incoming, abstractCount, totalCount, complexity);
 
         // Only Bar (under target/classes) is counted; FooTest under target/test-classes is excluded.
         assertEquals(1, totalCount.get("com.example.subpackage"));
@@ -106,8 +106,8 @@ class JavaClassAnalyzerTest {
         createTestClass(srcMainJava, "com/example/subpackage/ClassC.class", "com.example.subpackage.ClassC", false, "com.example.anothersubpackage.ClassA");
         createTestClassWithJavaLangDependency(srcMainJava, "com/example/anothersubpackage/ClassD.class", "com.example.anothersubpackage.ClassD", false);
 
-        // Prepare input for analyzeClasses
-        List<String> packages = Arrays.asList("com.example.anothersubpackage", "com.example.subpackage");
+        // Prepare input for analyzeClasses (main package com.example → modules are its sub-packages)
+        ModuleResolver resolver = new ModuleResolver("com.example", 1, Set.of());
         Map<String, Set<String>> outgoingDependencies = new ConcurrentHashMap<>();
         Map<String, Set<String>> incomingDependencies = new ConcurrentHashMap<>();
         Map<String, Integer> abstractClassCount = new HashMap<>();
@@ -115,7 +115,7 @@ class JavaClassAnalyzerTest {
         Map<String, ComplexityStats> complexity = new HashMap<>();
 
         // Run the analysis
-        javaClassAnalyzer.analyzeClasses(tempDir, packages, outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount, complexity);
+        javaClassAnalyzer.analyzeClasses(tempDir, resolver, outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount, complexity);
 
         // Verify the results
         assertEquals(3, totalClassCount.get("com.example.anothersubpackage"));

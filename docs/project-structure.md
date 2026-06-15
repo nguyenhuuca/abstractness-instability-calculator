@@ -16,7 +16,7 @@ Plain Java (no Spring); dependencies are only ASM, Jackson, slf4j, and snakeyaml
 
 - `domain` — the analysis core:
     - `JavaClassAnalyzer` — reads `.class` bytecode (ASM) to extract dependencies and class counts.
-    - `PackageLocator` / `ProjectPathTraverser` — find the main package and module packages.
+    - `PackageLocator` / `ProjectPathTraverser` — find the main package; `ModuleResolver` maps each class to its module package at the configured granularity (`analyze.depth` / `analyze.expand`).
     - `PackageMetricsCalculator` / `PackageMetrics` — aggregate into per-package A/I/D, Ce/Ca.
     - `CycleDetector` — Tarjan SCC over the package graph.
     - `GateConfig` / `ThresholdEvaluator` — quality gates.

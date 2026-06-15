@@ -58,6 +58,12 @@ banned-apis:
 dead-code:
   enabled: false
 
+# Module granularity. By default a module is a direct sub-package of the main package (Spring-Modulith).
+analyze:
+  depth: 1          # analyze N levels below the main package (default 1)
+  expand:           # split only these depth-1 packages one extra level into their sub-packages
+    - dto           # e.g. dto.admin, dto.auth, dto.webapi each become their own module
+
 architecture:
   enabled: true
   template: layered          # a built-in template (layered | hexagonal | onion) …
@@ -79,6 +85,11 @@ architecture:
 - **`gates`** — see [CLI & CI Gates](cli-and-ci.md) for what each gate means.
 - **`architecture`** — `enabled` plus either a built-in `template` or an inline `spec` (same schema as
   [Architecture Checks](architecture-checks.md)). `spec` wins if both are given.
+- **`analyze`** — module granularity. By default a module is a direct sub-package of the main package.
+  `depth: N` analyzes N levels deep for every branch; `expand: [dto, …]` splits only the named depth-1
+  packages one extra level (e.g. so `dto.admin` / `dto.webapi` get their own A/I/D instead of all
+  rolling up into `dto`). Classes are never dropped — a class shallower than the target depth maps to
+  its own package.
 
 ## Example: enforce in CI with no flags
 

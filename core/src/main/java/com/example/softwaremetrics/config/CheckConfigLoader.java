@@ -52,6 +52,7 @@ public final class CheckConfigLoader {
         ArchSpec architecture = null;
         List<BannedApiRule> bannedApis = List.of();
         boolean deadCodeEnabled = false;
+        AnalyzeConfig analyze = AnalyzeConfig.defaults();
 
         // 2. project aic-check.yaml
         Path file = discover(projectPath);
@@ -61,6 +62,7 @@ public final class CheckConfigLoader {
             architecture = architectureFrom(asMap(root.get("architecture")));
             bannedApis = bannedApisFrom(asMap(root.get("banned-apis")));
             deadCodeEnabled = sectionEnabled(asMap(root.get("dead-code")));
+            analyze = analyzeFrom(asMap(root.get("analyze")));
         }
 
         // 3. CLI flags (highest precedence)
@@ -76,7 +78,21 @@ public final class CheckConfigLoader {
             architecture = ArchSpecLoader.load(o.archRef());
         }
 
-        return new CheckConfig(gates.toConfig(), architecture, bannedApis, deadCodeEnabled);
+        return new CheckConfig(gates.toConfig(), architecture, bannedApis, deadCodeEnabled, analyze);
+    }
+
+    private static AnalyzeConfig analyzeFrom(Map<String, Object> section) {
+        if (section == null) {
+            return AnalyzeConfig.defaults();
+        }
+        int depth = (section.get("depth") instanceof Number n) ? Math.max(1, n.intValue()) : 1;
+        List<String> expand = new ArrayList<>();
+        if (section.get("expand") instanceof List<?> list) {
+            for (Object o : list) {
+                expand.add(String.valueOf(o));
+            }
+        }
+        return new AnalyzeConfig(depth, expand);
     }
 
     /** Returns the first existing {@code aic-check.yaml} candidate under the project, or null. */

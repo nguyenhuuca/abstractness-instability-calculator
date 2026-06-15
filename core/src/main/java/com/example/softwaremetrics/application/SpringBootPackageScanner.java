@@ -1,5 +1,7 @@
 package com.example.softwaremetrics.application;
 
+import com.example.softwaremetrics.config.AnalyzeConfig;
+import com.example.softwaremetrics.domain.ModuleResolver;
 import com.example.softwaremetrics.domain.PackageLocator;
 import com.example.softwaremetrics.domain.PackageMetrics;
 import com.example.softwaremetrics.domain.PackageMetricsCalculator;
@@ -9,8 +11,9 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Scans project directories and estimates metrics for the packages within. Locates the main package
@@ -29,7 +32,12 @@ public class SpringBootPackageScanner {
         this.packageMetricsCalculator = packageMetricsCalculator;
     }
 
+    /** Scans with the default module granularity (Spring-Modulith depth 1). */
     public Map<String, PackageMetrics> scanProject(String projectPath) {
+        return scanProject(projectPath, AnalyzeConfig.defaults());
+    }
+
+    public Map<String, PackageMetrics> scanProject(String projectPath, AnalyzeConfig analyze) {
         logger.info("Starting project scan for path: {}", projectPath);
         Path path = Paths.get(projectPath);
 
@@ -40,13 +48,28 @@ public class SpringBootPackageScanner {
         }
         logger.debug("Main package found: {}", mainPackage);
 
-        List<String> applicationModulePackages = packageLocator.findApplicationModulePackages(path, mainPackage);
-        if (applicationModulePackages.isEmpty()) {
+        ModuleResolver resolver = new ModuleResolver(mainPackage, analyze.depth(), expandedFqns(mainPackage, analyze));
+        Map<String, PackageMetrics> metrics = packageMetricsCalculator.calculateMetrics(path, resolver);
+        if (metrics.isEmpty()) {
             logger.error("No subpackages found.");
             throw new IllegalArgumentException("No subpackages found.");
         }
-        logger.debug("Top-level packages found: {}", applicationModulePackages);
+        logger.debug("Module packages found: {}", metrics.keySet());
+        return metrics;
+    }
 
-        return packageMetricsCalculator.calculateMetrics(path, applicationModulePackages);
+    /** Resolves {@code expand} entries (simple name or FQN) to fully-qualified packages under main. */
+    private Set<String> expandedFqns(String mainPackage, AnalyzeConfig analyze) {
+        Set<String> result = new LinkedHashSet<>();
+        if (analyze.expand() != null) {
+            for (String entry : analyze.expand()) {
+                if (entry == null || entry.isBlank()) {
+                    continue;
+                }
+                String e = entry.trim();
+                result.add(e.startsWith(mainPackage + ".") ? e : mainPackage + "." + e);
+            }
+        }
+        return result;
     }
 }

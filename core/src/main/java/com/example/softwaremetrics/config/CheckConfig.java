@@ -13,5 +13,6 @@ import java.util.List;
  * defaults &lt; project {@code aic-check.yaml} &lt; CLI flags.
  */
 public record CheckConfig(GateConfig gate, ArchSpec architecture,
-                          List<BannedApiRule> bannedApis, boolean deadCodeEnabled) {
+                          List<BannedApiRule> bannedApis, boolean deadCodeEnabled,
+                          AnalyzeConfig analyze) {
 }

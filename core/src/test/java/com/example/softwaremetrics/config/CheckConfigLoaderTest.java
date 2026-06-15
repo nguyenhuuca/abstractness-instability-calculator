@@ -165,4 +165,28 @@ class CheckConfigLoaderTest {
         assertThat(CheckConfigLoader.resolve(proj, Overrides.none()).deadCodeEnabled()).isTrue();
         assertThat(CheckConfigLoader.resolve(proj, Overrides.none()).bannedApis()).isEmpty();
     }
+
+    @Test
+    void parsesAnalyzeDepthAndExpand(@TempDir Path proj) throws IOException {
+        writeFile(proj, "aic-check.yaml", """
+                analyze:
+                  depth: 2
+                  expand:
+                    - dto
+                    - service
+                """);
+
+        CheckConfig cfg = CheckConfigLoader.resolve(proj, Overrides.none());
+
+        assertThat(cfg.analyze().depth()).isEqualTo(2);
+        assertThat(cfg.analyze().expand()).containsExactly("dto", "service");
+    }
+
+    @Test
+    void analyzeDefaultsWhenAbsent(@TempDir Path proj) throws IOException {
+        writeFile(proj, "aic-check.yaml", "dead-code:\n  enabled: true\n");
+        CheckConfig cfg = CheckConfigLoader.resolve(proj, Overrides.none());
+        assertThat(cfg.analyze().depth()).isEqualTo(1);
+        assertThat(cfg.analyze().expand()).isEmpty();
+    }
 }

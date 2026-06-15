@@ -69,7 +69,7 @@ public final class CliMain {
             CheckConfig config = CheckConfigLoader.resolve(projectPath,
                     new CheckConfigLoader.Overrides(parsed.failOnDistance, parsed.noCycles, parsed.archRef));
 
-            Map<String, PackageMetrics> metrics = scanner.scanProject(parsed.scanPath);
+            Map<String, PackageMetrics> metrics = scanner.scanProject(parsed.scanPath, config.analyze());
             List<List<String>> cycles = cycleDetector.findCycles(metrics);
             GateResult gateResult = evaluator.evaluate(metrics, cycles, config.gate());
             MetricsExport export = MetricsExport.from(parsed.scanPath, TOOL_VERSION, metrics)

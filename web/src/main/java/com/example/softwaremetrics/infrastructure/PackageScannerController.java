@@ -61,11 +61,7 @@ public class PackageScannerController {
      * Runs architecture, banned-API and dead-code checks per the project's {@code aic-check.yaml}
      * (the architecture dropdown overrides the file). Each is null/empty when not configured.
      */
-    private Checks runChecks(String path, String arch) {
-        Path projectPath = Path.of(path);
-        CheckConfig config = CheckConfigLoader.resolve(projectPath,
-                new CheckConfigLoader.Overrides(null, false, arch));
-
+    private Checks runChecks(Path projectPath, CheckConfig config) {
         boolean needsModel = !config.bannedApis().isEmpty() || config.deadCodeEnabled();
         boolean needsArch = config.architecture() != null;
         if (!needsModel && !needsArch) {
@@ -104,8 +100,10 @@ public class PackageScannerController {
     @PostMapping("/scan")
     public String scan(@RequestParam String path, @RequestParam(defaultValue = "") String arch, Model model) {
         try {
-            Map<String, PackageMetrics> metrics = springBootPackageScanner.scanProject(path);
-            Checks checks = runChecks(path, arch);
+            CheckConfig config = CheckConfigLoader.resolve(Path.of(path),
+                    new CheckConfigLoader.Overrides(null, false, arch));
+            Map<String, PackageMetrics> metrics = springBootPackageScanner.scanProject(path, config.analyze());
+            Checks checks = runChecks(Path.of(path), config);
             model.addAttribute("metrics", metrics);
             model.addAttribute("cycles", cycleDetector.findCycles(metrics));
             model.addAttribute("architecture", checks.architecture());
@@ -127,9 +125,11 @@ public class PackageScannerController {
     @ResponseBody
     public ResponseEntity<?> exportMetrics(@RequestParam String path, @RequestParam(defaultValue = "") String arch) {
         try {
-            Map<String, PackageMetrics> metrics = springBootPackageScanner.scanProject(path);
+            CheckConfig config = CheckConfigLoader.resolve(Path.of(path),
+                    new CheckConfigLoader.Overrides(null, false, arch));
+            Map<String, PackageMetrics> metrics = springBootPackageScanner.scanProject(path, config.analyze());
             List<List<String>> cycles = cycleDetector.findCycles(metrics);
-            Checks checks = runChecks(path, arch);
+            Checks checks = runChecks(Path.of(path), config);
             MetricsExport export = MetricsExport.from(path, toolVersion, metrics)
                     .withCycles(cycles)
                     .withArchitecture(checks.architecture());

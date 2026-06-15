@@ -90,7 +90,7 @@ public class JavaClassAnalyzer {
         }
     }
 
-    void analyzeClasses(Path projectPath, List<String> modulePackages,
+    void analyzeClasses(Path projectPath, ModuleResolver resolver,
                         Map<String, Set<String>> outgoingDependencies,
                         Map<String, Set<String>> incomingDependencies,
                         Map<String, Integer> abstractClassCount,
@@ -101,7 +101,7 @@ public class JavaClassAnalyzer {
                     .filter(Files::isRegularFile)
                     .filter(p -> p.toString().endsWith(".class"))
                     .filter(this::isNotTestClass)
-                    .forEach(file -> analyzeClassFile(file, modulePackages, outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount, complexity));
+                    .forEach(file -> analyzeClassFile(file, resolver, outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount, complexity));
         } catch (IOException e) {
             logger.error("Error while analyzing classes for {}", projectPath, e);
             throw new IllegalStateException(e);
@@ -377,7 +377,7 @@ public class JavaClassAnalyzer {
             && !p.contains("/build/classes/kotlin/test/"); // Gradle (Kotlin)
     }
 
-    private void analyzeClassFile(Path file, List<String> modulePackages,
+    private void analyzeClassFile(Path file, ModuleResolver resolver,
                                   Map<String, Set<String>> outgoingDependencies,
                                   Map<String, Set<String>> incomingDependencies,
                                   Map<String, Integer> abstractClassCount,
@@ -389,21 +389,20 @@ public class JavaClassAnalyzer {
             classReader.accept(classNode, 0);
 
             String className = Type.getObjectType(classNode.name).getClassName();
-            String packageName = getPackageName(className);
-            String topLevelPackage = extractTopLevelPackageFrom(packageName, modulePackages);
+            String module = resolver.moduleOf(className);
 
-            if (topLevelPackage == null) return;
+            if (module == null) return;
             if (classNode.name.endsWith("Builder")) return;
             if (className.contains("$")) return; // Skip inner classes
 
             logger.trace("Analyzing class: {}", className);
-            totalClassCount.merge(topLevelPackage, 1, Integer::sum);
+            totalClassCount.merge(module, 1, Integer::sum);
             if ((classNode.access & Opcodes.ACC_ABSTRACT) != 0 || (classNode.access & Opcodes.ACC_INTERFACE) != 0) {
-                abstractClassCount.merge(topLevelPackage, 1, Integer::sum);
+                abstractClassCount.merge(module, 1, Integer::sum);
             }
 
             String simpleName = className.substring(className.lastIndexOf('.') + 1);
-            ComplexityStats stats = complexity.computeIfAbsent(topLevelPackage, k -> new ComplexityStats());
+            ComplexityStats stats = complexity.computeIfAbsent(module, k -> new ComplexityStats());
 
             Set<String> dependencies = new HashSet<>();
             for (MethodNode method : classNode.methods) {
@@ -417,12 +416,11 @@ public class JavaClassAnalyzer {
             for (String dependency : dependencies) {
                 if (dependency.endsWith("Builder")) continue;
                 if (dependency.contains("$")) continue; // Skip inner classes
-                String dependencyPackage = getPackageName(dependency);
-                String dependencyTopLevelPackage = extractTopLevelPackageFrom(dependencyPackage, modulePackages);
-                if (!topLevelPackage.equals(dependencyTopLevelPackage) && !isExcludedDependency(dependency)) {
-                    outgoingDependencies.computeIfAbsent(topLevelPackage, _ -> new HashSet<>()).add(dependency);
-                    if (dependencyTopLevelPackage != null) {
-                        incomingDependencies.computeIfAbsent(dependencyTopLevelPackage, _ -> new HashSet<>()).add(className);
+                String dependencyModule = resolver.moduleOf(dependency);
+                if (!module.equals(dependencyModule) && !isExcludedDependency(dependency)) {
+                    outgoingDependencies.computeIfAbsent(module, _ -> new HashSet<>()).add(dependency);
+                    if (dependencyModule != null) {
+                        incomingDependencies.computeIfAbsent(dependencyModule, _ -> new HashSet<>()).add(className);
                     }
                 }
             }
@@ -536,13 +534,6 @@ public class JavaClassAnalyzer {
         if (!isExcludedDependency(normalized)) {
             dependencies.add(dependency);
         }
-    }
-
-    private String extractTopLevelPackageFrom(String packageName, List<String> packages) {
-        return packages.stream()
-                .filter(packageName::startsWith)
-                .findFirst()
-                .orElse(null);
     }
 
     private String getPackageName(String className) {
