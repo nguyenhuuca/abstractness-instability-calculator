@@ -1,5 +1,7 @@
 package com.example.softwaremetrics.domain;
 
+import com.example.softwaremetrics.domain.model.ProjectModel;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,14 +27,9 @@ public class PackageMetricsCalculator {
     }
 
     /**
-     * Calculates various metrics for the given list of packages within a project.
-     *
-     * @param projectPath The path to the root directory of the project.
-     * @param modulePackages    A list of package names to analyze.
-     * @return A map where the key is the package name and the value is another map
-     * containing calculated metrics such as 'Instability', 'Abstractness'
-     * and 'Distance'.
-     * @
+     * Calculates the metrics by scanning the project at {@code projectPath}. Convenience entry point
+     * that builds the project model itself; prefer {@link #calculateMetrics(ProjectModel, ModuleResolver)}
+     * when a model has already been built (so the project is scanned only once).
      */
     public Map<String, PackageMetrics> calculateMetrics(Path projectPath, ModuleResolver resolver) {
         Map<String, Set<String>> outgoingDependencies = new ConcurrentHashMap<>();
@@ -42,7 +39,32 @@ public class PackageMetricsCalculator {
         Map<String, ComplexityStats> complexity = new ConcurrentHashMap<>();
 
         javaClassAnalyzer.analyzeClasses(projectPath, resolver, outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount, complexity);
+        return compute(outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount, complexity);
+    }
 
+    /**
+     * Calculates per-module metrics from an already-built {@link ProjectModel} — the single-pass path
+     * used by the analysis pipeline.
+     *
+     * @param model    the project analyzed once
+     * @param resolver assigns each class to its module package
+     */
+    public Map<String, PackageMetrics> calculateMetrics(ProjectModel model, ModuleResolver resolver) {
+        Map<String, Set<String>> outgoingDependencies = new ConcurrentHashMap<>();
+        Map<String, Set<String>> incomingDependencies = new ConcurrentHashMap<>();
+        Map<String, Integer> abstractClassCount = new ConcurrentHashMap<>();
+        Map<String, Integer> totalClassCount = new ConcurrentHashMap<>();
+        Map<String, ComplexityStats> complexity = new ConcurrentHashMap<>();
+
+        MetricsAggregator.aggregate(model, resolver, outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount, complexity);
+        return compute(outgoingDependencies, incomingDependencies, abstractClassCount, totalClassCount, complexity);
+    }
+
+    private Map<String, PackageMetrics> compute(Map<String, Set<String>> outgoingDependencies,
+                                                Map<String, Set<String>> incomingDependencies,
+                                                Map<String, Integer> abstractClassCount,
+                                                Map<String, Integer> totalClassCount,
+                                                Map<String, ComplexityStats> complexity) {
         // Modules emerge from the classes seen (no fixed list); union the keys touched by the analysis.
         Set<String> modules = new TreeSet<>();
         modules.addAll(totalClassCount.keySet());

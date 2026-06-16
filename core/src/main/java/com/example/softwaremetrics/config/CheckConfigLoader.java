@@ -92,7 +92,8 @@ public final class CheckConfigLoader {
                 expand.add(String.valueOf(o));
             }
         }
-        return new AnalyzeConfig(depth, expand);
+        String rootPackage = (section.get("rootPackage") != null) ? String.valueOf(section.get("rootPackage")) : null;
+        return new AnalyzeConfig(depth, expand, rootPackage);
     }
 
     /** Returns the first existing {@code aic-check.yaml} candidate under the project, or null. */

@@ -72,8 +72,23 @@ class AnalysisServiceTest {
     }
 
     @Test
-    void throwsWhenNoSpringBootApplication(@TempDir Path tempDir) throws IOException {
-        Files.createDirectories(tempDir.resolve("src/main/java"));
+    void scansPlainJavaProjectViaCommonPrefix(@TempDir Path tempDir) throws IOException {
+        // No @SpringBootApplication, no src/main/java, no aic-check.yaml — the root package is inferred
+        // as the common prefix com.plain, and its sub-packages a/b become modules.
+        writeClass(tempDir.resolve("target/classes"), "com/plain/a/Foo.class",
+                "com.plain.a.Foo", "com.plain.b.Bar");
+        writeClass(tempDir.resolve("target/classes"), "com/plain/b/Bar.class",
+                "com.plain.b.Bar", "com.plain.a.Foo");
+
+        AnalysisResult result = service.analyze(AnalysisRequest.of(tempDir.toString(), "9.9-TEST"));
+
+        assertTrue(result.metrics().containsKey("com.plain.a"));
+        assertTrue(result.metrics().containsKey("com.plain.b"));
+    }
+
+    @Test
+    void throwsWhenRootPackageCannotBeDetermined(@TempDir Path tempDir) throws IOException {
+        Files.createDirectories(tempDir.resolve("src/main/java")); // empty, no classes at all
         assertThrows(IllegalArgumentException.class,
                 () -> service.analyze(AnalysisRequest.of(tempDir.toString(), "9.9-TEST")));
     }

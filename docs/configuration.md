@@ -58,9 +58,11 @@ banned-apis:
 dead-code:
   enabled: false
 
-# Module granularity. By default a module is a direct sub-package of the main package (Spring-Modulith).
+# Module granularity. By default a module is a direct sub-package of the root package (Spring-Modulith).
 analyze:
-  depth: 1          # analyze N levels below the main package (default 1)
+  rootPackage:      # optional: analyze this root explicitly (lets a non-Spring-Boot project opt in).
+                    # When blank the root is resolved: @SpringBootApplication, else the common prefix.
+  depth: 1          # analyze N levels below the root package (default 1)
   expand:           # split only these depth-1 packages one extra level into their sub-packages
     - dto           # e.g. dto.admin, dto.auth, dto.webapi each become their own module
 
@@ -85,11 +87,13 @@ architecture:
 - **`gates`** — see [CLI & CI Gates](cli-and-ci.md) for what each gate means.
 - **`architecture`** — `enabled` plus either a built-in `template` or an inline `spec` (same schema as
   [Architecture Checks](architecture-checks.md)). `spec` wins if both are given.
-- **`analyze`** — module granularity. By default a module is a direct sub-package of the main package.
-  `depth: N` analyzes N levels deep for every branch; `expand: [dto, …]` splits only the named depth-1
-  packages one extra level (e.g. so `dto.admin` / `dto.webapi` get their own A/I/D instead of all
-  rolling up into `dto`). Classes are never dropped — a class shallower than the target depth maps to
-  its own package.
+- **`analyze`** — root package & module granularity. `rootPackage` analyzes that root explicitly (so a
+  non-Spring-Boot project can opt in); when blank the root is resolved automatically
+  (`@SpringBootApplication`, else the inferred common prefix). By default a module is a direct
+  sub-package of the root. `depth: N` analyzes N levels deep for every branch; `expand: [dto, …]` splits
+  only the named depth-1 packages one extra level (e.g. so `dto.admin` / `dto.webapi` get their own
+  A/I/D instead of all rolling up into `dto`). Classes are never dropped — a class shallower than the
+  target depth maps to its own package.
 
 ## Example: enforce in CI with no flags
 
