@@ -1,0 +1,2884 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Package abstractness/instability metrics, quality gates, cycle and architecture checks for Java/Spring Boot projects">
+      
+      
+        <meta name="author" content="nguyenhuuca">
+      
+      
+      
+        <link rel="prev" href="../../adr/0001-cyclic-dependency-detection/">
+      
+      
+        <link rel="next" href="../../plans/plan-cyclic-dependency-detection/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Spec - Abstractness & Instability Calculator</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#feature-specification-cyclic-dependency-detection" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Abstractness &amp; Instability Calculator" class="md-header__button md-logo" aria-label="Abstractness & Instability Calculator" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Abstractness & Instability Calculator
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Spec
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/nguyenhuuca/aic" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    nguyenhuuca/aic
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../getting-started/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Getting Started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../metrics/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Usage
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../project-structure/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../prd/PRD-cyclic-dependency-detection/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Design Docs
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Abstractness &amp; Instability Calculator" class="md-nav__button md-logo" aria-label="Abstractness & Instability Calculator" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Abstractness & Instability Calculator
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/nguyenhuuca/aic" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    nguyenhuuca/aic
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Usage
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../metrics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Understanding the Metrics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cli-and-ci/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI & CI Gates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture-checks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Checks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../json-export/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JSON Export & API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../project-structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project Structure
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../web-ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web UI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../claude-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Claude Code Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design Docs
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Design Docs
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5_1" id="__nav_5_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cyclic Dependency Detection
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cyclic Dependency Detection
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../prd/PRD-cyclic-dependency-detection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PRD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/0001-cyclic-dependency-detection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metadata
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#business-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Business Rules
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Business Rules">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rule-1-scc-definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rule 1 — SCC definition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rule-2-package-graph-construction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rule 2 — Package graph construction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rule-3-owning-package-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rule 3 — Owning-package resolution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rule-4-deterministic-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rule 4 — Deterministic output
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rule-5-gate-is-opt-in-detection-is-always-on" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rule 5 — Gate is opt-in, detection is always-on
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rule-6-reuse-via-cyclesingraph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rule 6 — Reuse via cyclesInGraph
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#functional-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functional Requirements
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functional Requirements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fr-1-run-tarjans-scc-on-every-scan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FR-1: Run Tarjan's SCC on every scan
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fr-2-package-graph-from-efferent-deps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FR-2: Package graph from efferent deps
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fr-3-filter-to-first-party-packages-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FR-3: Filter to first-party packages only
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fr-4-json-envelope-always-contains-cycles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FR-4: JSON envelope always contains cycles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fr-5-gate-failure-on-cycles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FR-5: Gate failure on cycles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fr-6-cli-exit-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FR-6: CLI exit code
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fr-7-web-ui-banner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FR-7: Web UI banner
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fr-8-per-project-gate-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FR-8: Per-project gate config
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fr-9-architecture-checker-reuse" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FR-9: Architecture checker reuse
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Changes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API Changes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#json-envelope-metricsexport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JSON Envelope — MetricsExport
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cli-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cli-error-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI error table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#web-endpoints-no-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Web endpoints — no changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#domain-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Domain Changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gate-config-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gate / Config Changes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Gate / Config Changes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#aic-checkyaml-schema-per-project-file-in-scanned-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        aic-check.yaml schema (per-project file in scanned project)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gateproperties-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GateProperties default
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#checkconfigloader-layering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CheckConfigLoader layering
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ui-changes-thymeleaf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UI Changes (Thymeleaf)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="UI Changes (Thymeleaf)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#graphhtml-cycle-banner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        graph.html — cycle banner
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#no-changes-to" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No changes to
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#no-database-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No Database Changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#no-caching-impact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No Caching Impact
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security Requirements
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Security Requirements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication-authorization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication / Authorization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Validation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#non-functional-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Non-Functional Requirements
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Non-Functional Requirements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#correctness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Correctness
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#edge-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Edge Cases
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Edge Cases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ec-1-project-with-no-cycles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC-1: Project with no cycles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ec-2-single-module-package" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC-2: Single module package
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ec-3-all-packages-in-one-large-cycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC-3: All packages in one large cycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ec-4-multiple-disjoint-cycles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC-4: Multiple disjoint cycles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ec-5-external-only-efferent-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC-5: External-only efferent dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ec-6-gate-disabled-cycles-present" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC-6: Gate disabled, cycles present
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ec-7-no-cycles-overrides-yaml-enabled-false" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC-7: --no-cycles overrides YAML enabled: false
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acceptance-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Acceptance Criteria
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open Questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#version-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Version History
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plans/plan-cyclic-dependency-detection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metadata
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#business-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Business Rules
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Business Rules">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rule-1-scc-definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rule 1 — SCC definition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rule-2-package-graph-construction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rule 2 — Package graph construction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rule-3-owning-package-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rule 3 — Owning-package resolution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rule-4-deterministic-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rule 4 — Deterministic output
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rule-5-gate-is-opt-in-detection-is-always-on" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rule 5 — Gate is opt-in, detection is always-on
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rule-6-reuse-via-cyclesingraph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rule 6 — Reuse via cyclesInGraph
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#functional-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functional Requirements
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Functional Requirements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fr-1-run-tarjans-scc-on-every-scan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FR-1: Run Tarjan's SCC on every scan
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fr-2-package-graph-from-efferent-deps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FR-2: Package graph from efferent deps
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fr-3-filter-to-first-party-packages-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FR-3: Filter to first-party packages only
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fr-4-json-envelope-always-contains-cycles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FR-4: JSON envelope always contains cycles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fr-5-gate-failure-on-cycles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FR-5: Gate failure on cycles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fr-6-cli-exit-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FR-6: CLI exit code
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fr-7-web-ui-banner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FR-7: Web UI banner
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fr-8-per-project-gate-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FR-8: Per-project gate config
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fr-9-architecture-checker-reuse" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FR-9: Architecture checker reuse
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Changes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="API Changes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#json-envelope-metricsexport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JSON Envelope — MetricsExport
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cli-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cli-error-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI error table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#web-endpoints-no-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Web endpoints — no changes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#domain-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Domain Changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gate-config-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gate / Config Changes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Gate / Config Changes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#aic-checkyaml-schema-per-project-file-in-scanned-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        aic-check.yaml schema (per-project file in scanned project)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gateproperties-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GateProperties default
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#checkconfigloader-layering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CheckConfigLoader layering
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ui-changes-thymeleaf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UI Changes (Thymeleaf)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="UI Changes (Thymeleaf)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#graphhtml-cycle-banner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        graph.html — cycle banner
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#no-changes-to" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No changes to
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#no-database-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No Database Changes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#no-caching-impact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No Caching Impact
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security Requirements
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Security Requirements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication-authorization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication / Authorization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Validation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#non-functional-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Non-Functional Requirements
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Non-Functional Requirements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#correctness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Correctness
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#edge-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Edge Cases
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Edge Cases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ec-1-project-with-no-cycles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC-1: Project with no cycles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ec-2-single-module-package" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC-2: Single module package
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ec-3-all-packages-in-one-large-cycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC-3: All packages in one large cycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ec-4-multiple-disjoint-cycles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC-4: Multiple disjoint cycles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ec-5-external-only-efferent-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC-5: External-only efferent dependencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ec-6-gate-disabled-cycles-present" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC-6: Gate disabled, cycles present
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ec-7-no-cycles-overrides-yaml-enabled-false" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EC-7: --no-cycles overrides YAML enabled: false
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#acceptance-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Acceptance Criteria
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open Questions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#version-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Version History
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/nguyenhuuca/aic/edit/main/docs/specs/spec-cyclic-dependency-detection.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="feature-specification-cyclic-dependency-detection">Feature Specification: Cyclic Dependency Detection<a class="headerlink" href="#feature-specification-cyclic-dependency-detection" title="Permanent link">&para;</a></h1>
+<h2 id="metadata">Metadata<a class="headerlink" href="#metadata" title="Permanent link">&para;</a></h2>
+<p><strong>Status:</strong> Implemented
+<strong>Author:</strong> nguyenhuuca
+<strong>Date:</strong> 2026-06-17
+<strong>Related PRD:</strong> <a href="../../prd/PRD-cyclic-dependency-detection/">PRD-cyclic-dependency-detection</a>
+<strong>Related ADR:</strong> <a href="../../adr/0001-cyclic-dependency-detection/">0001-cyclic-dependency-detection</a></p>
+<hr />
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p><code>aic</code> runs Tarjan's Strongly-Connected-Components algorithm over the module package dependency graph
+(derived from efferent class references extracted in the single ASM pass) and returns every SCC of
+size ≥ 2 as a named cycle group. Cycles are always included in the JSON envelope and web UI banner;
+an opt-in gate (<code>--no-cycles</code> / <code>gate.no-cycles.enabled: true</code>) causes the CLI to exit <code>1</code> when any
+cycle is detected, enabling enforcement in CI pipelines.</p>
+<hr />
+<h2 id="business-rules">Business Rules<a class="headerlink" href="#business-rules" title="Permanent link">&para;</a></h2>
+<h3 id="rule-1-scc-definition">Rule 1 — SCC definition<a class="headerlink" href="#rule-1-scc-definition" title="Permanent link">&para;</a></h3>
+<p>A cycle group is a strongly-connected component (SCC) of size ≥ 2 in the directed package
+dependency graph. SCCs of size 1 (a node with no back-edges to itself) are not reported.</p>
+<h3 id="rule-2-package-graph-construction">Rule 2 — Package graph construction<a class="headerlink" href="#rule-2-package-graph-construction" title="Permanent link">&para;</a></h3>
+<p>The package dependency graph is built from <code>PackageMetrics.efferentDependencies</code> (class-level
+references already collected during the ASM pass). An edge A→B is added when:
+- A class in module package A references a class whose owning module package is B, <strong>and</strong>
+- A ≠ B</p>
+<p>Only module packages (direct sub-packages of the root, depth-controlled by <code>analyze.depth</code>) are
+graph nodes. External classes (Spring, JDK, etc.) that do not belong to any module package produce
+no graph node and no edge.</p>
+<h3 id="rule-3-owning-package-resolution">Rule 3 — Owning-package resolution<a class="headerlink" href="#rule-3-owning-package-resolution" title="Permanent link">&para;</a></h3>
+<p>A class is assigned to its owning module package by longest-prefix match: the module package <code>P</code>
+such that <code>className.startsWith(P + ".")</code> and <code>P</code> is the longest such match. If no module package
+matches the class, it is silently ignored (contributes no edge).</p>
+<h3 id="rule-4-deterministic-output">Rule 4 — Deterministic output<a class="headerlink" href="#rule-4-deterministic-output" title="Permanent link">&para;</a></h3>
+<p>The output must be fully deterministic:
+- Within each cycle group: package names are sorted alphabetically.
+- Across cycle groups: groups are sorted by their first element (alphabetically).</p>
+<h3 id="rule-5-gate-is-opt-in-detection-is-always-on">Rule 5 — Gate is opt-in, detection is always-on<a class="headerlink" href="#rule-5-gate-is-opt-in-detection-is-always-on" title="Permanent link">&para;</a></h3>
+<p>Cycle detection always runs and results always appear in the JSON envelope and web UI. The gate
+(exit code <code>1</code> for CLI) is activated only when <code>noCyclesEnabled</code> is <code>true</code> in the resolved
+<code>GateConfig</code>. Default is <code>false</code>.</p>
+<h3 id="rule-6-reuse-via-cyclesingraph">Rule 6 — Reuse via <code>cyclesInGraph</code><a class="headerlink" href="#rule-6-reuse-via-cyclesingraph" title="Permanent link">&para;</a></h3>
+<p><code>CycleDetector.cyclesInGraph(Map&lt;String, List&lt;String&gt;&gt;)</code> is a <code>public static</code> method that accepts
+any directed graph. It must be used by <code>ArchChecker</code> for component-level cycle detection — there
+must be no duplicate Tarjan implementation.</p>
+<hr />
+<h2 id="functional-requirements">Functional Requirements<a class="headerlink" href="#functional-requirements" title="Permanent link">&para;</a></h2>
+<h3 id="fr-1-run-tarjans-scc-on-every-scan">FR-1: Run Tarjan's SCC on every scan<a class="headerlink" href="#fr-1-run-tarjans-scc-on-every-scan" title="Permanent link">&para;</a></h3>
+<p>The system <strong>must</strong> execute <code>CycleDetector.findCycles(metrics)</code> on every invocation of
+<code>AnalysisService.analyze()</code>, regardless of whether the <code>--no-cycles</code> gate is enabled.</p>
+<h3 id="fr-2-package-graph-from-efferent-deps">FR-2: Package graph from efferent deps<a class="headerlink" href="#fr-2-package-graph-from-efferent-deps" title="Permanent link">&para;</a></h3>
+<p>The package graph <strong>must</strong> be built from <code>PackageMetrics.getEfferentDependencies()</code> using
+<code>CycleDetector.buildPackageGraph()</code>. No second filesystem walk or ASM pass is permitted.</p>
+<h3 id="fr-3-filter-to-first-party-packages-only">FR-3: Filter to first-party packages only<a class="headerlink" href="#fr-3-filter-to-first-party-packages-only" title="Permanent link">&para;</a></h3>
+<p>External classes (not matching any module package by longest-prefix) <strong>must not</strong> appear as graph
+nodes or edges. Only intra-module-package edges are included.</p>
+<h3 id="fr-4-json-envelope-always-contains-cycles">FR-4: JSON envelope always contains <code>cycles</code><a class="headerlink" href="#fr-4-json-envelope-always-contains-cycles" title="Permanent link">&para;</a></h3>
+<p><code>MetricsExport.cycles</code> <strong>must</strong> be set (via <code>withCycles(cycles)</code>) on every scan. It <strong>must</strong> be an
+empty list <code>[]</code> when no cycles exist, and a non-empty list of cycle groups when cycles are detected.
+It <strong>must not</strong> be <code>null</code> in the final envelope returned by <code>AnalysisService</code>.</p>
+<h3 id="fr-5-gate-failure-on-cycles">FR-5: Gate failure on cycles<a class="headerlink" href="#fr-5-gate-failure-on-cycles" title="Permanent link">&para;</a></h3>
+<p>When <code>GateConfig.noCyclesEnabled()</code> is <code>true</code> and at least one cycle is detected, <code>ThresholdEvaluator</code>
+<strong>must</strong> add a <code>GateResult.Violation</code> with <code>gateType = "circularDependency"</code> for each cycle.
+The violation message <strong>must</strong> follow the pattern:
+<code>"Circular dependency between packages: pkgA -&gt; pkgB -&gt; pkgA"</code></p>
+<h3 id="fr-6-cli-exit-code">FR-6: CLI exit code<a class="headerlink" href="#fr-6-cli-exit-code" title="Permanent link">&para;</a></h3>
+<p>When the gate is enabled and violations include <code>circularDependency</code>, the CLI <strong>must</strong> exit <code>1</code>.
+If detection runs but the gate is disabled, the CLI <strong>must</strong> exit <code>0</code> (assuming no other gate
+violations).</p>
+<h3 id="fr-7-web-ui-banner">FR-7: Web UI banner<a class="headerlink" href="#fr-7-web-ui-banner" title="Permanent link">&para;</a></h3>
+<p><code>graph.html</code> <strong>must</strong> render a cycle banner when <code>cycles != null &amp;&amp; !cycles.isEmpty()</code>.
+Each cycle <strong>must</strong> be displayed as <code>pkgA → pkgB → pkgA</code> (the last element repeating the first).
+No banner is rendered when <code>cycles</code> is empty.</p>
+<h3 id="fr-8-per-project-gate-config">FR-8: Per-project gate config<a class="headerlink" href="#fr-8-per-project-gate-config" title="Permanent link">&para;</a></h3>
+<p><code>aic-check.yaml</code> <strong>must</strong> support <code>gate.no-cycles.enabled: true</code> to activate the gate without
+requiring the <code>--no-cycles</code> CLI flag. Layering: code default (<code>false</code>) &lt; <code>aic-check.yaml</code> value &lt;
+<code>--no-cycles</code> CLI flag (always forces <code>true</code>).</p>
+<h3 id="fr-9-architecture-checker-reuse">FR-9: Architecture checker reuse<a class="headerlink" href="#fr-9-architecture-checker-reuse" title="Permanent link">&para;</a></h3>
+<p><code>ArchChecker</code> <strong>must</strong> call <code>CycleDetector.cyclesInGraph(graph)</code> (the static method) to find
+component cycles. It <strong>must not</strong> contain its own Tarjan implementation.</p>
+<hr />
+<h2 id="api-changes">API Changes<a class="headerlink" href="#api-changes" title="Permanent link">&para;</a></h2>
+<h3 id="json-envelope-metricsexport">JSON Envelope — <code>MetricsExport</code><a class="headerlink" href="#json-envelope-metricsexport" title="Permanent link">&para;</a></h3>
+<p>No new fields added. The <code>cycles</code> field is pre-existing and already populated.</p>
+<p><strong><code>cycles</code> field contract:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">&quot;cycles&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">    </span><span class="p">[</span><span class="s2">&quot;com.example.app.domain&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;com.example.app.service&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">    </span><span class="p">[</span><span class="s2">&quot;com.example.app.controller&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;com.example.app.repo&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;com.example.app.util&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="p">]</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">}</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Nullable</th>
+<th>Value when acyclic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cycles</code></td>
+<td><code>List&lt;List&lt;String&gt;&gt;</code></td>
+<td>No</td>
+<td><code>[]</code> (empty array)</td>
+</tr>
+<tr>
+<td><code>cycles[n]</code></td>
+<td><code>List&lt;String&gt;</code></td>
+<td>—</td>
+<td>— (not present)</td>
+</tr>
+<tr>
+<td><code>cycles[n][m]</code></td>
+<td><code>String</code></td>
+<td>—</td>
+<td>Fully-qualified module package name</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Ordering guarantee:</strong><br />
+Each inner list is sorted alphabetically. Outer list is sorted by <code>cycles[n].get(0)</code>.</p>
+<h3 id="cli-flags">CLI flags<a class="headerlink" href="#cli-flags" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Type</th>
+<th>Default</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--no-cycles</code></td>
+<td>boolean toggle</td>
+<td><code>false</code></td>
+<td>Enables the cycle gate; CLI exits <code>1</code> if any cycle detected</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cli-error-table">CLI error table<a class="headerlink" href="#cli-error-table" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Exit code</th>
+<th>Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Gate disabled, cycles found</td>
+<td><code>0</code></td>
+<td>JSON includes <code>cycles</code> list; no gate violation</td>
+</tr>
+<tr>
+<td>Gate enabled, no cycles</td>
+<td><code>0</code></td>
+<td>JSON <code>cycles: []</code>; gate passes</td>
+</tr>
+<tr>
+<td>Gate enabled, ≥ 1 cycle found</td>
+<td><code>1</code></td>
+<td>JSON includes <code>cycles</code> and <code>gate.violations</code> entries</td>
+</tr>
+<tr>
+<td>Scan error (path invalid, no root pkg)</td>
+<td><code>2</code></td>
+<td>JSON <code>error</code> field; <code>cycles</code> absent</td>
+</tr>
+</tbody>
+</table>
+<h3 id="web-endpoints-no-changes">Web endpoints — no changes<a class="headerlink" href="#web-endpoints-no-changes" title="Permanent link">&para;</a></h3>
+<p><code>POST /scan</code> and <code>GET /api/metrics</code> already return the <code>cycles</code> field from <code>MetricsExport</code>. No
+endpoint signature changes.</p>
+<hr />
+<h2 id="domain-changes">Domain Changes<a class="headerlink" href="#domain-changes" title="Permanent link">&para;</a></h2>
+<p>No new domain types introduced. Existing types involved:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Location</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CycleDetector</code></td>
+<td><code>core/domain/CycleDetector.java</code></td>
+<td>Algorithm + graph construction</td>
+</tr>
+<tr>
+<td><code>CycleDetector.Tarjan</code> (private)</td>
+<td>same</td>
+<td>Tarjan SCC inner class</td>
+</tr>
+<tr>
+<td><code>PackageMetrics.getEfferentDependencies()</code></td>
+<td><code>core/domain/PackageMetrics.java</code></td>
+<td>Input to graph builder</td>
+</tr>
+<tr>
+<td><code>GateConfig.noCyclesEnabled()</code></td>
+<td><code>core/domain/GateConfig.java</code></td>
+<td>Gate switch</td>
+</tr>
+<tr>
+<td><code>GateProperties.noCycles</code></td>
+<td><code>core/domain/GateProperties.java</code></td>
+<td><code>ToggleGate(false)</code> default</td>
+</tr>
+<tr>
+<td><code>ThresholdEvaluator</code></td>
+<td><code>core/domain/ThresholdEvaluator.java</code></td>
+<td>Evaluates gate + builds violations</td>
+</tr>
+<tr>
+<td><code>MetricsExport.cycles</code></td>
+<td><code>core/domain/MetricsExport.java</code></td>
+<td>Output contract</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="gate-config-changes">Gate / Config Changes<a class="headerlink" href="#gate-config-changes" title="Permanent link">&para;</a></h2>
+<h3 id="aic-checkyaml-schema-per-project-file-in-scanned-project"><code>aic-check.yaml</code> schema (per-project file in scanned project)<a class="headerlink" href="#aic-checkyaml-schema-per-project-file-in-scanned-project" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">gate</span><span class="p">:</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">no-cycles</span><span class="p">:</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">    </span><span class="c1"># default; set true to fail build on any cycle</span>
+</code></pre></div>
+<h3 id="gateproperties-default"><code>GateProperties</code> default<a class="headerlink" href="#gateproperties-default" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kd">private</span><span class="w"> </span><span class="n">ToggleGate</span><span class="w"> </span><span class="n">noCycles</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">ToggleGate</span><span class="p">(</span><span class="kc">false</span><span class="p">);</span><span class="w">  </span><span class="c1">// off by default</span>
+</code></pre></div>
+<h3 id="checkconfigloader-layering"><code>CheckConfigLoader</code> layering<a class="headerlink" href="#checkconfigloader-layering" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Code default: <code>GateProperties.noCycles.enabled = false</code></li>
+<li><code>aic-check.yaml</code>: <code>gate.no-cycles.enabled: true</code> overrides the default</li>
+<li>CLI <code>--no-cycles</code> flag: always forces <code>noCyclesEnabled = true</code> regardless of YAML</li>
+</ol>
+<hr />
+<h2 id="ui-changes-thymeleaf">UI Changes (Thymeleaf)<a class="headerlink" href="#ui-changes-thymeleaf" title="Permanent link">&para;</a></h2>
+<h3 id="graphhtml-cycle-banner"><code>graph.html</code> — cycle banner<a class="headerlink" href="#graphhtml-cycle-banner" title="Permanent link">&para;</a></h3>
+<p>Rendered by the fragment <code>graph :: graph</code> (returned by <code>POST /scan</code>).</p>
+<p><strong>Condition to show:</strong> <code>${cycles != null and !cycles.empty}</code></p>
+<p><strong>Rendering:</strong> one <code>&lt;li&gt;</code> per cycle, text content is the packages joined by <code>→</code>, with the first
+package appended again to close the cycle visually:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>com.example.app.domain → com.example.app.service → com.example.app.domain
+</code></pre></div>
+<p><strong>Styling:</strong> uses the existing <code>.cycle-banner</code> / <code>.cycle-banner-title</code> / <code>.cycle-list</code> CSS classes
+already defined in <code>index.html</code>. No new CSS variables or class names.</p>
+<h3 id="no-changes-to">No changes to<a class="headerlink" href="#no-changes-to" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>index.html</code> shell or dark-theme CSS variables</li>
+<li><code>metricsChart</code> scatter plot</li>
+<li><code>#tabContainer</code>, <code>#packageSelect</code>, D3 dependency graph</li>
+<li>Any element IDs relied upon by htmx/Chart.js/D3 scripts</li>
+</ul>
+<hr />
+<h2 id="no-database-changes">No Database Changes<a class="headerlink" href="#no-database-changes" title="Permanent link">&para;</a></h2>
+<p>This tool has no persistence layer. No tables, migrations, or queries.</p>
+<h2 id="no-caching-impact">No Caching Impact<a class="headerlink" href="#no-caching-impact" title="Permanent link">&para;</a></h2>
+<p>Each scan is stateless. There is no in-memory cache involved in cycle detection.</p>
+<hr />
+<h2 id="security-requirements">Security Requirements<a class="headerlink" href="#security-requirements" title="Permanent link">&para;</a></h2>
+<h3 id="authentication-authorization">Authentication / Authorization<a class="headerlink" href="#authentication-authorization" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Web: no authentication. The <code>/scan</code> endpoint and <code>/api/metrics</code> are public (same as all other
+  existing endpoints).</li>
+<li>CLI: runs locally as the invoking user; no auth.</li>
+</ul>
+<h3 id="data-validation">Data Validation<a class="headerlink" href="#data-validation" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Input</th>
+<th>Rule</th>
+<th>Behaviour on violation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--scan=&lt;path&gt;</code></td>
+<td>Path must exist and contain compiled <code>.class</code> files</td>
+<td><code>AnalysisService</code> throws <code>IllegalArgumentException</code> → exit <code>2</code> / <code>graph :: error</code> fragment</td>
+</tr>
+<tr>
+<td>No module packages found</td>
+<td>Root package resolved but no sub-packages</td>
+<td><code>IllegalArgumentException</code> ("no module sub-packages") → exit <code>2</code></td>
+</tr>
+</tbody>
+</table>
+<p>Cycle detection itself has no additional validation requirements — an empty or single-package
+project simply produces <code>cycles: []</code>.</p>
+<hr />
+<h2 id="non-functional-requirements">Non-Functional Requirements<a class="headerlink" href="#non-functional-requirements" title="Permanent link">&para;</a></h2>
+<h3 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Target</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CycleDetector.findCycles()</code></td>
+<td>&lt; 5 ms</td>
+<td>Tarjan is O(V+E); package graph has &lt; 100 nodes on any real project</td>
+</tr>
+<tr>
+<td>Total <code>AnalysisService.analyze()</code> latency impact</td>
+<td>Negligible</td>
+<td>No additional I/O; only in-memory graph traversal</td>
+</tr>
+</tbody>
+</table>
+<h3 id="correctness">Correctness<a class="headerlink" href="#correctness" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Guarantee</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No false negatives</td>
+<td>Tarjan finds ALL SCCs; every package-level cycle is reported</td>
+</tr>
+<tr>
+<td>No false positives from external deps</td>
+<td>Package graph restricted to known module packages; external classes produce no nodes</td>
+</tr>
+<tr>
+<td>Determinism</td>
+<td>Alphabetical sort within SCC + sort by first element across SCCs — same input always gives same output</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="edge-cases">Edge Cases<a class="headerlink" href="#edge-cases" title="Permanent link">&para;</a></h2>
+<h3 id="ec-1-project-with-no-cycles">EC-1: Project with no cycles<a class="headerlink" href="#ec-1-project-with-no-cycles" title="Permanent link">&para;</a></h3>
+<p><strong>Condition:</strong> Package graph is a DAG (no back-edges).<br />
+<strong>Expected:</strong> <code>CycleDetector.findCycles()</code> returns <code>[]</code>. <code>MetricsExport.cycles = []</code>. No banner
+rendered. CLI exits <code>0</code> (even if gate is enabled).</p>
+<h3 id="ec-2-single-module-package">EC-2: Single module package<a class="headerlink" href="#ec-2-single-module-package" title="Permanent link">&para;</a></h3>
+<p><strong>Condition:</strong> Project has exactly one module package (no inter-package edges possible).<br />
+<strong>Expected:</strong> Package graph has one node and no edges. <code>findCycles()</code> returns <code>[]</code>. No banner.</p>
+<h3 id="ec-3-all-packages-in-one-large-cycle">EC-3: All packages in one large cycle<a class="headerlink" href="#ec-3-all-packages-in-one-large-cycle" title="Permanent link">&para;</a></h3>
+<p><strong>Condition:</strong> Every module package (transitively) depends on every other — one SCC containing all N
+packages.<br />
+<strong>Expected:</strong> One cycle group in output containing all N packages, sorted alphabetically.</p>
+<h3 id="ec-4-multiple-disjoint-cycles">EC-4: Multiple disjoint cycles<a class="headerlink" href="#ec-4-multiple-disjoint-cycles" title="Permanent link">&para;</a></h3>
+<p><strong>Condition:</strong> Graph has two independent SCCs of size ≥ 2 (e.g. A↔B and C↔D).<br />
+<strong>Expected:</strong> Two cycle groups returned. Outer list sorted by first element of each group.</p>
+<h3 id="ec-5-external-only-efferent-dependencies">EC-5: External-only efferent dependencies<a class="headerlink" href="#ec-5-external-only-efferent-dependencies" title="Permanent link">&para;</a></h3>
+<p><strong>Condition:</strong> A module package references only Spring/JDK classes (no other module packages).<br />
+<strong>Expected:</strong> No edges added to the package graph for those references. <code>findCycles()</code> unaffected.</p>
+<h3 id="ec-6-gate-disabled-cycles-present">EC-6: Gate disabled, cycles present<a class="headerlink" href="#ec-6-gate-disabled-cycles-present" title="Permanent link">&para;</a></h3>
+<p><strong>Condition:</strong> <code>--no-cycles</code> not passed (or <code>gate.no-cycles.enabled: false</code>) but cycles exist.<br />
+<strong>Expected:</strong> CLI exits <code>0</code>. JSON contains <code>cycles</code> list with cycle groups. <code>gate.violations</code> does
+not include <code>circularDependency</code> entries.</p>
+<h3 id="ec-7-no-cycles-overrides-yaml-enabled-false">EC-7: <code>--no-cycles</code> overrides YAML <code>enabled: false</code><a class="headerlink" href="#ec-7-no-cycles-overrides-yaml-enabled-false" title="Permanent link">&para;</a></h3>
+<p><strong>Condition:</strong> <code>aic-check.yaml</code> has <code>gate.no-cycles.enabled: false</code> but <code>--no-cycles</code> flag is
+passed.<br />
+<strong>Expected:</strong> CLI flag wins — gate is enabled, CLI exits <code>1</code> if cycles found.</p>
+<hr />
+<h2 id="acceptance-criteria">Acceptance Criteria<a class="headerlink" href="#acceptance-criteria" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] <code>CycleDetectorTest.detectsTwoNodeCycle()</code> passes: A→B, B→A produces one cycle group <code>[A, B]</code></li>
+<li>[ ] <code>CycleDetectorTest.detectsThreeNodeCycle()</code> passes: A→B→C→A produces one cycle group <code>[A, B, C]</code></li>
+<li>[ ] <code>CycleDetectorTest.acyclicGraphHasNoCycles()</code> passes: A→B→C (DAG) produces <code>[]</code></li>
+<li>[ ] <code>CycleDetectorTest.reportsOnlyTheCyclicComponentInAMixedGraph()</code> passes</li>
+<li>[ ] <code>CycleDetectorTest.ignoresDependenciesOnClassesOutsideTheModulePackages()</code> passes</li>
+<li>[ ] <code>MetricsExport.cycles</code> is <code>[]</code> (not <code>null</code>) when no cycles found</li>
+<li>[ ] <code>MetricsExport.cycles</code> lists each cycle alphabetically sorted, groups sorted by first element</li>
+<li>[ ] CLI exits <code>1</code> when <code>--no-cycles</code> is passed and at least one cycle is detected</li>
+<li>[ ] CLI exits <code>0</code> when <code>--no-cycles</code> is passed and the graph is acyclic</li>
+<li>[ ] CLI exits <code>0</code> (no gate violation for cycles) when <code>--no-cycles</code> is not passed, even if cycles exist</li>
+<li>[ ] <code>gate.no-cycles.enabled: true</code> in <code>aic-check.yaml</code> activates the gate without CLI flag</li>
+<li>[ ] <code>--no-cycles</code> CLI flag overrides <code>gate.no-cycles.enabled: false</code> in <code>aic-check.yaml</code></li>
+<li>[ ] Web UI renders the cycle banner when <code>cycles</code> is non-empty; no banner when empty</li>
+<li>[ ] Banner text is <code>pkgA → pkgB → pkgA</code> (first package repeated to close the cycle)</li>
+<li>[ ] <code>ArchChecker</code> calls <code>CycleDetector.cyclesInGraph()</code> — no duplicate Tarjan implementation</li>
+<li>[ ] <code>mvn verify</code> passes with no regressions</li>
+</ul>
+<hr />
+<h2 id="open-questions">Open Questions<a class="headerlink" href="#open-questions" title="Permanent link">&para;</a></h2>
+<ul>
+<li>[ ] Should the D3 dependency graph visually highlight cycle edges (e.g. red arrows)? Currently
+      deferred — cycles appear only in the text banner.</li>
+<li>[ ] Should <code>MetricsExport.cycles</code> include the directed edges within each cycle (not just node
+      names) to allow consumers to reconstruct the cycle path without re-running the algorithm?</li>
+</ul>
+<hr />
+<h2 id="version-history">Version History<a class="headerlink" href="#version-history" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Date</th>
+<th>Author</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.0</td>
+<td>2026-06-17</td>
+<td>nguyenhuuca</td>
+<td>Initial — documenting existing implementation</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.indexes", "search.highlight", "search.suggest", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://unpkg.com/mermaid@11/dist/mermaid.min.js"></script>
+      
+    
+  </body>
+</html>
