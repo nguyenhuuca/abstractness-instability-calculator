@@ -66,3 +66,9 @@ nav:
       - Contributing: contributing.md
       - Web UI: web-ui.md
       - Claude Code Workflow: claude-workflow.md
+  - Design Docs:
+      - Cyclic Dependency Detection:
+          - PRD: prd/PRD-cyclic-dependency-detection.md
+          - ADR: adr/0001-cyclic-dependency-detection.md
+          - Spec: specs/spec-cyclic-dependency-detection.md
+          - Plan: plans/plan-cyclic-dependency-detection.md
