@@ -2,7 +2,7 @@
 
 ## Overview
 
-**Status:** In Progress (core complete; integration test gap remaining)
+**Status:** Complete
 **Author:** nguyenhuuca
 **Date:** 2026-06-17
 **Beads Issue:** N/A (bd not installed; see task list below)
@@ -103,7 +103,7 @@ AnalysisService.analyze()
 
 ### Phase 4: Integration test gap ⬜ TODO
 
-- [ ] **4.1** Add integration test in `PackageScannerControllerIT` that builds a synthetic project with two packages that mutually depend on each other (A references class in B; B references class in A) using ASM bytecode generation.
+- [x] **4.1** Add integration test in `PackageScannerControllerIT` that builds a synthetic project with two packages that mutually depend on each other (A references class in B; B references class in A) using ASM bytecode generation.
 
   **Test outline:**
   ```java
@@ -125,7 +125,7 @@ AnalysisService.analyze()
   - Also assert: POST /scan (Thymeleaf) model attribute `cycles` is non-empty (check banner text
     appears in response HTML)
 
-- [ ] **4.2** Run `mvn -B verify` to confirm `PackageScannerControllerIT` passes with the new test.
+- [x] **4.2** Run `mvn -B verify` to confirm `PackageScannerControllerIT` passes with the new test.
 
 ## Files to Modify
 
@@ -170,8 +170,8 @@ No new dependencies required.
 | Scenario | Expected Outcome | Status |
 |----------|------------------|--------|
 | Acyclic synthetic project | `$.cycles` is `[]` in JSON | ✅ Exists (`testExportMetricsJson`) |
-| **Cyclic synthetic project (A↔B)** | `$.cycles` has 1 group containing both packages; Thymeleaf model `cycles` non-empty | ⬜ TODO |
-| `--no-cycles` gate via JSON (CLI mode) | Gate violation for `circularDependency` in `$.gate.violations` | ⬜ TODO (lower priority) |
+| **Cyclic synthetic project (A↔B)** | `$.cycles` has 1 group containing both packages; Thymeleaf model `cycles` non-empty | ✅ Done |
+| `--no-cycles` gate via JSON (CLI mode) | Gate violation for `circularDependency` in `$.gate.violations` | ⬜ Deferred |
 
 ### Manual Testing
 
@@ -244,3 +244,4 @@ question about D3 cycle-edge highlighting is therefore blocked until D3 is added
 | Date | Update |
 |------|--------|
 | 2026-06-17 | Core algorithm, gate, JSON envelope, web banner, and unit tests confirmed complete. Integration test gap identified via codebase exploration. Plan created. |
+| 2026-06-17 | Added `scanReportsCyclicDependencies` IT test + `createCyclicProjectStructure` / `writeCyclicClass` helpers. All 8 IT tests pass (`mvn -B verify`). Feature complete. |

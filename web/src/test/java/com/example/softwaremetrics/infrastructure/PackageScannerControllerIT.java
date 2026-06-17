@@ -26,6 +26,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 
 @SpringBootTest
@@ -102,6 +104,87 @@ public class PackageScannerControllerIT {
         mockMvc.perform(get("/api/metrics").param("path", "/non/existent/path"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error", notNullValue()));
+    }
+
+    @Test
+    void scanReportsCyclicDependencies(@TempDir Path cyclicDir) throws Exception {
+        createCyclicProjectStructure(cyclicDir);
+
+        // JSON envelope must contain exactly one cycle group with both module packages
+        mockMvc.perform(get("/api/metrics").param("path", cyclicDir.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cycles").isArray())
+                .andExpect(jsonPath("$.cycles.length()", greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.cycles[0]",
+                        hasItems("com.example.domain", "com.example.service")));
+
+        // Thymeleaf model must expose the cycle list so the banner can render
+        mockMvc.perform(post("/scan").param("path", cyclicDir.toString()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("graph :: graph"))
+                .andExpect(model().attribute("cycles", hasSize(greaterThanOrEqualTo(1))));
+    }
+
+    /**
+     * Builds a minimal synthetic project where com.example.domain and com.example.service
+     * form a mutual dependency: DomainClass declares a method returning ServiceClass, and
+     * ServiceClass declares a method returning DomainClass.  Method return types are captured
+     * by ProjectModelBuilder (via {@code Type.getReturnType(method.desc)}) so this is the
+     * lightest bytecode change that produces a first-party cross-package reference.
+     */
+    private void createCyclicProjectStructure(Path projectRoot) throws IOException {
+        // Source marker so SpringBootRootPackageResolver finds the root package
+        Path mainApp = projectRoot.resolve("src/main/java/com/example/CyclicTestApp.java");
+        Files.createDirectories(mainApp.getParent());
+        Files.writeString(mainApp, """
+                package com.example;
+                import org.springframework.boot.autoconfigure.SpringBootApplication;
+                @SpringBootApplication
+                public class CyclicTestApp {}
+                """);
+
+        // domain → service edge: DomainClass has a method whose return type is ServiceClass
+        writeCyclicClass(
+                projectRoot.resolve("target/classes/com/example/domain/DomainClass.class"),
+                "com/example/domain/DomainClass",
+                "getService", "()Lcom/example/service/ServiceClass;");
+
+        // service → domain edge: ServiceClass has a method whose return type is DomainClass
+        writeCyclicClass(
+                projectRoot.resolve("target/classes/com/example/service/ServiceClass.class"),
+                "com/example/service/ServiceClass",
+                "getDomain", "()Lcom/example/domain/DomainClass;");
+    }
+
+    /**
+     * Emits a minimal valid .class file with one public method whose descriptor references
+     * a class in another module package, creating an efferent dependency edge in the
+     * package graph that CycleDetector can traverse.
+     */
+    private void writeCyclicClass(Path classFile, String internalName,
+                                   String methodName, String methodDescriptor) throws IOException {
+        ClassWriter cw = new ClassWriter(0);
+        cw.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC, internalName, null, "java/lang/Object", null);
+
+        MethodVisitor ctor = cw.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
+        ctor.visitCode();
+        ctor.visitVarInsn(Opcodes.ALOAD, 0);
+        ctor.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+        ctor.visitInsn(Opcodes.RETURN);
+        ctor.visitMaxs(1, 1);
+        ctor.visitEnd();
+
+        // Method whose return type creates the cross-package dependency reference
+        MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, methodName, methodDescriptor, null, null);
+        mv.visitCode();
+        mv.visitInsn(Opcodes.ACONST_NULL);
+        mv.visitInsn(Opcodes.ARETURN);
+        mv.visitMaxs(1, 1);
+        mv.visitEnd();
+
+        cw.visitEnd();
+        Files.createDirectories(classFile.getParent());
+        Files.write(classFile, cw.toByteArray());
     }
 
     private void createTestProjectStructure(Path projectRoot) throws IOException {
