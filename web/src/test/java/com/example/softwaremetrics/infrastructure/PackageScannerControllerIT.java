@@ -24,9 +24,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 
@@ -110,19 +111,19 @@ public class PackageScannerControllerIT {
     void scanReportsCyclicDependencies(@TempDir Path cyclicDir) throws Exception {
         createCyclicProjectStructure(cyclicDir);
 
-        // JSON envelope must contain exactly one cycle group with both module packages
         mockMvc.perform(get("/api/metrics").param("path", cyclicDir.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.cycles").isArray())
-                .andExpect(jsonPath("$.cycles.length()", greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.cycles.length()", equalTo(1)))
+                .andExpect(jsonPath("$.cycles[0].length()", equalTo(2)))
                 .andExpect(jsonPath("$.cycles[0]",
-                        hasItems("com.example.domain", "com.example.service")));
+                        containsInAnyOrder("com.example.domain", "com.example.service")));
 
-        // Thymeleaf model must expose the cycle list so the banner can render
         mockMvc.perform(post("/scan").param("path", cyclicDir.toString()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("graph :: graph"))
-                .andExpect(model().attribute("cycles", hasSize(greaterThanOrEqualTo(1))));
+                .andExpect(model().attribute("cycles", hasSize(equalTo(1))))
+                .andExpect(content().string(containsString("Circular dependencies detected")));
     }
 
     /**
@@ -143,48 +144,31 @@ public class PackageScannerControllerIT {
                 public class CyclicTestApp {}
                 """);
 
-        // domain → service edge: DomainClass has a method whose return type is ServiceClass
+        // domain → service edge
         writeCyclicClass(
                 projectRoot.resolve("target/classes/com/example/domain/DomainClass.class"),
-                "com/example/domain/DomainClass",
                 "getService", "()Lcom/example/service/ServiceClass;");
 
-        // service → domain edge: ServiceClass has a method whose return type is DomainClass
+        // service → domain edge
         writeCyclicClass(
                 projectRoot.resolve("target/classes/com/example/service/ServiceClass.class"),
-                "com/example/service/ServiceClass",
                 "getDomain", "()Lcom/example/domain/DomainClass;");
     }
 
-    /**
-     * Emits a minimal valid .class file with one public method whose descriptor references
-     * a class in another module package, creating an efferent dependency edge in the
-     * package graph that CycleDetector can traverse.
-     */
-    private void writeCyclicClass(Path classFile, String internalName,
-                                   String methodName, String methodDescriptor) throws IOException {
+    private void writeCyclicClass(Path classFile, String methodName,
+                                   String methodDescriptor) throws IOException {
+        String internalName = classFile.toString().replace('\\', '/')
+                .replaceAll(".*/target/classes/", "").replace(".class", "");
         ClassWriter cw = new ClassWriter(0);
         cw.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC, internalName, null, "java/lang/Object", null);
-
-        MethodVisitor ctor = cw.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
-        ctor.visitCode();
-        ctor.visitVarInsn(Opcodes.ALOAD, 0);
-        ctor.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
-        ctor.visitInsn(Opcodes.RETURN);
-        ctor.visitMaxs(1, 1);
-        ctor.visitEnd();
-
-        // Method whose return type creates the cross-package dependency reference
+        emitDefaultConstructor(cw);
         MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, methodName, methodDescriptor, null, null);
         mv.visitCode();
         mv.visitInsn(Opcodes.ACONST_NULL);
         mv.visitInsn(Opcodes.ARETURN);
         mv.visitMaxs(1, 1);
         mv.visitEnd();
-
-        cw.visitEnd();
-        Files.createDirectories(classFile.getParent());
-        Files.write(classFile, cw.toByteArray());
+        writeClassToFile(cw, classFile);
     }
 
     private void createTestProjectStructure(Path projectRoot) throws IOException {
@@ -227,6 +211,16 @@ public class PackageScannerControllerIT {
     private void writeCompiledClass(Path classFile, String className) throws IOException {
         ClassWriter cw = new ClassWriter(0);
         cw.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC, className.replace('.', '/'), null, "java/lang/Object", null);
+        emitDefaultConstructor(cw);
+        MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, "testMethod", "()V", null, null);
+        mv.visitCode();
+        mv.visitInsn(Opcodes.RETURN);
+        mv.visitMaxs(0, 1);
+        mv.visitEnd();
+        writeClassToFile(cw, classFile);
+    }
+
+    private void emitDefaultConstructor(ClassWriter cw) {
         MethodVisitor ctor = cw.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
         ctor.visitCode();
         ctor.visitVarInsn(Opcodes.ALOAD, 0);
@@ -234,13 +228,10 @@ public class PackageScannerControllerIT {
         ctor.visitInsn(Opcodes.RETURN);
         ctor.visitMaxs(1, 1);
         ctor.visitEnd();
-        MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, "testMethod", "()V", null, null);
-        mv.visitCode();
-        mv.visitInsn(Opcodes.RETURN);
-        mv.visitMaxs(0, 1);
-        mv.visitEnd();
-        cw.visitEnd();
+    }
 
+    private void writeClassToFile(ClassWriter cw, Path classFile) throws IOException {
+        cw.visitEnd();
         Files.createDirectories(classFile.getParent());
         Files.write(classFile, cw.toByteArray());
     }

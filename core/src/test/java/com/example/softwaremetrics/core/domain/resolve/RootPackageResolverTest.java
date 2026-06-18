@@ -1,6 +1,10 @@
 package com.example.softwaremetrics.core.domain.resolve;
 
+import com.example.softwaremetrics.core.config.Defaults;
+import com.example.softwaremetrics.core.domain.bytecode.DependencyExclusions;
+import com.example.softwaremetrics.core.domain.bytecode.ProjectModelBuilder;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -52,5 +56,17 @@ class RootPackageResolverTest {
                 new ExplicitRootPackageResolver(null),
                 p -> null));
         assertNull(chain.resolve(ANY));
+    }
+
+    @Test
+    void commonPrefixResolverConstructorWithProjectModelBuilderReturnsNullForEmptyDirectory(
+            @TempDir Path emptyDir) {
+        // Construct the resolver via the public constructor that takes a ProjectModelBuilder
+        ProjectModelBuilder builder = new ProjectModelBuilder(
+                new DependencyExclusions(Defaults.exclusions()));
+        CommonPrefixRootPackageResolver resolver = new CommonPrefixRootPackageResolver(builder);
+
+        // An empty directory has no .class files, so the common prefix is null
+        assertNull(resolver.resolve(emptyDir));
     }
 }

@@ -32,6 +32,11 @@ public final class CliMain {
     }
 
     public static void main(String[] args) throws Exception {
+        System.exit(run(args));
+    }
+
+    /** Runs the full CLI pipeline and returns the exit code (0/1/2). Package-private for testing. */
+    static int run(String[] args) throws Exception {
         // slf4j-simple → keep diagnostic logs on stderr and quiet so stdout stays clean JSON.
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "warn");
         System.setProperty("org.slf4j.simpleLogger.logFile", "System.err");
@@ -40,8 +45,7 @@ public final class CliMain {
         if (parsed.scanPath == null || parsed.scanPath.isBlank()) {
             System.err.println("Usage: --scan=<project-path> [--output=<file>] "
                     + "[--fail-on-distance=<d>] [--no-cycles] [--arch=<template|file.yaml>]");
-            System.exit(2);
-            return;
+            return 2;
         }
 
         AnalysisService service = AnalysisService.create(Defaults.exclusions());
@@ -65,14 +69,14 @@ public final class CliMain {
             printBannedSummary(result.bannedApiViolations());
             printDeadCodeSummary(result.deadCode());
 
-            System.exit(result.success() ? 0 : 1);
+            return result.success() ? 0 : 1;
         } catch (IllegalArgumentException | IllegalStateException e) {
             System.err.println("Scan failed: " + e.getMessage());
-            System.exit(2);
+            return 2;
         }
     }
 
-    private static void printSummary(GateResult result) {
+    static void printSummary(GateResult result) {
         if (result == null) {
             return;
         }
@@ -86,7 +90,7 @@ public final class CliMain {
         }
     }
 
-    private static void printArchSummary(ArchResult arch) {
+    static void printArchSummary(ArchResult arch) {
         if (arch == null) {
             return;
         }
@@ -101,7 +105,7 @@ public final class CliMain {
         }
     }
 
-    private static void printBannedSummary(List<GateResult.Violation> violations) {
+    static void printBannedSummary(List<GateResult.Violation> violations) {
         if (violations.isEmpty()) {
             return;
         }
@@ -111,7 +115,7 @@ public final class CliMain {
         }
     }
 
-    private static void printDeadCodeSummary(DeadCodeResult deadCode) {
+    static void printDeadCodeSummary(DeadCodeResult deadCode) {
         if (deadCode == null || deadCode.unusedClasses().isEmpty()) {
             return;
         }
@@ -123,7 +127,7 @@ public final class CliMain {
     }
 
     /** Minimal arg parsing for {@code --key=value}, {@code --key value} and boolean flags. */
-    private static final class Args {
+    static final class Args {
         String scanPath;
         String outputFile;
         Double failOnDistance;

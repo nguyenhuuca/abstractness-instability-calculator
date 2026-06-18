@@ -44,6 +44,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <!-- @{} = late binding so JaCoCo's prepare-agent-integration runs first -->
+                    <argLine>@{argLine}</argLine>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>

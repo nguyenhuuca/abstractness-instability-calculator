@@ -1,5 +1,7 @@
 package com.example.softwaremetrics.core.domain;
 
+import com.example.softwaremetrics.core.domain.arch.ArchResult;
+import com.example.softwaremetrics.core.domain.deadcode.DeadCodeResult;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
@@ -73,5 +75,45 @@ class MetricsExportTest {
 
         assertThat(withCycles.cycles()).isSameAs(cycles);
         assertThat(export.cycles()).isNull(); // original unchanged
+    }
+
+    @Test
+    void bannedApisAreNullByDefaultAndAttachedByWithBannedApis() {
+        MetricsExport export = MetricsExport.from("/p", "1.0-TEST", Map.of());
+        assertThat(export.bannedApiViolations()).isNull();
+
+        List<GateResult.Violation> violations = List.of(
+                new GateResult.Violation("bannedApi", "com.example.Foo", 1.0, 0.0, "uses banned API"));
+        MetricsExport withBanned = export.withBannedApis(violations);
+
+        assertThat(withBanned.bannedApiViolations()).isSameAs(violations);
+        assertThat(withBanned.packageCount()).isEqualTo(export.packageCount());
+        assertThat(export.bannedApiViolations()).isNull(); // original unchanged
+    }
+
+    @Test
+    void architectureIsNullByDefaultAndAttachedByWithArchitecture() {
+        MetricsExport export = MetricsExport.from("/p", "1.0-TEST", Map.of());
+        assertThat(export.architecture()).isNull();
+
+        ArchResult arch = new ArchResult("layered", true, List.of());
+        MetricsExport withArch = export.withArchitecture(arch);
+
+        assertThat(withArch.architecture()).isSameAs(arch);
+        assertThat(withArch.packageCount()).isEqualTo(export.packageCount());
+        assertThat(export.architecture()).isNull(); // original unchanged
+    }
+
+    @Test
+    void deadCodeIsNullByDefaultAndAttachedByWithDeadCode() {
+        MetricsExport export = MetricsExport.from("/p", "1.0-TEST", Map.of());
+        assertThat(export.deadCode()).isNull();
+
+        DeadCodeResult deadCode = new DeadCodeResult(List.of("com.example.Unused"));
+        MetricsExport withDeadCode = export.withDeadCode(deadCode);
+
+        assertThat(withDeadCode.deadCode()).isSameAs(deadCode);
+        assertThat(withDeadCode.packageCount()).isEqualTo(export.packageCount());
+        assertThat(export.deadCode()).isNull(); // original unchanged
     }
 }

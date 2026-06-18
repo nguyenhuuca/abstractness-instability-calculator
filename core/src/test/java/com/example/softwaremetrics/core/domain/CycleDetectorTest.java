@@ -88,4 +88,28 @@ class CycleDetectorTest {
 
         assertThat(detector.findCycles(metrics)).isEmpty();
     }
+
+    @Test
+    void sortLambdaOrdersPackagesAlphabeticallyWithinSccAndSccsByFirstElement() {
+        // Three-node cycle inserted in reverse-alphabetical order so that:
+        //   - The "sorted within SCC" lambda must reorder z -> m -> a to [a, m, z]
+        //   - The "sorted SCCs by first element" comparator is exercised via a second isolated cycle
+        // First cycle: z -> m -> a -> z  (non-alphabetical insertion order)
+        Map<String, PackageMetrics> metrics = new LinkedHashMap<>();
+        metrics.put("com.app.z", pkg("com.app.z", "com.app.m"));
+        metrics.put("com.app.m", pkg("com.app.m", "com.app.a"));
+        metrics.put("com.app.a", pkg("com.app.a", "com.app.z"));
+        // Second cycle: p -> q -> p  (starts after "a" alphabetically, so it sorts second)
+        metrics.put("com.app.p", pkg("com.app.p", "com.app.q"));
+        metrics.put("com.app.q", pkg("com.app.q", "com.app.p"));
+
+        List<List<String>> cycles = detector.findCycles(metrics);
+
+        // Two distinct SCCs
+        assertThat(cycles).hasSize(2);
+        // First SCC (alphabetically smallest first element = "com.app.a")
+        assertThat(cycles.get(0)).containsExactly("com.app.a", "com.app.m", "com.app.z");
+        // Second SCC (first element = "com.app.p")
+        assertThat(cycles.get(1)).containsExactly("com.app.p", "com.app.q");
+    }
 }
