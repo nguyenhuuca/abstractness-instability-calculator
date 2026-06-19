@@ -5,8 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Abstractness &amp; Instability Metrics Calculator</title>
+    <meta name="description" content="Analyze Spring Boot project package design: Abstractness, Instability, and Distance metrics plotted on the Main Sequence.">
+    <link rel="icon" href="data:,">
     <script src="https://unpkg.com/htmx.org@2.0.2"></script>
-    <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
     <script>
         htmx.config.useTemplateFragments = true;
     </script>
@@ -510,7 +511,7 @@
                 <input type="text" id="path" name="path" required placeholder="e.g. /Users/me/projects/my-spring-app">
             </div>
             <div class="select-wrapper" title="Optional architecture conformance check">
-                <select name="arch" id="archSelect">
+                <select name="arch" id="archSelect" aria-label="Architecture conformance check">
                     <option value="">Architecture: none</option>
                     <option value="layered">Architecture: Layered</option>
                     <option value="hexagonal">Architecture: Hexagonal</option>
@@ -521,6 +522,7 @@
         </div>
     </form>
 
+    <main>
     <div id="loadingSpinner" class="spinner"></div>
 
     <div id="summaryStats">
@@ -574,6 +576,7 @@
             </div>
         </div>
     </div>
+    </main>
 
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script>

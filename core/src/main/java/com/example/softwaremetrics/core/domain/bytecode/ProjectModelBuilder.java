@@ -72,7 +72,7 @@ public class ProjectModelBuilder {
                     });
         } catch (IOException e) {
             logger.error("Error while analyzing classes for {}", projectPath, e);
-            throw new IllegalStateException(e);
+            throw new IllegalStateException("Cannot read project at '" + projectPath + "'", e);
         }
         return new ProjectModel(classes);
     }
