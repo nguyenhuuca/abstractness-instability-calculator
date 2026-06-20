@@ -1251,16 +1251,16 @@
 <p>Plain Java (no Spring); dependencies are only ASM, Jackson, slf4j, and snakeyaml.</p>
 <ul>
 <li><code>domain</code> — the analysis core:<ul>
-<li><code>JavaClassAnalyzer</code> — reads <code>.class</code> bytecode (ASM) to extract dependencies and class counts.</li>
-<li><code>PackageLocator</code> / <code>ProjectPathTraverser</code> — find the main package; <code>ModuleResolver</code> maps each class to its module package at the configured granularity (<code>analyze.depth</code> / <code>analyze.expand</code>).</li>
-<li><code>PackageMetricsCalculator</code> / <code>PackageMetrics</code> — aggregate into per-package A/I/D, Ce/Ca.</li>
+<li><code>bytecode/ProjectModelBuilder</code> — reads <code>.class</code> bytecode (ASM) in a single pass into a <code>ProjectModel</code> (dependencies, class counts, complexity, type/method refs).</li>
+<li><code>resolve/</code> — the <code>RootPackageResolver</code> chain (<code>Explicit</code> → <code>SpringBoot</code> → <code>CommonPrefix</code>, the Spring-Boot step backed by <code>SpringBootAnnotationScanner</code>) finds the root package; <code>ProjectPathTraverser</code> is a <code>Files.walk</code> wrapper; <code>ModuleResolver</code> maps each class to its module package at the configured granularity (<code>analyze.depth</code> / <code>analyze.expand</code>).</li>
+<li><code>PackageMetricsCalculator</code> / <code>MetricsAggregator</code> / <code>PackageMetrics</code> — aggregate the model into per-package A/I/D, Ce/Ca.</li>
 <li><code>CycleDetector</code> — Tarjan SCC over the package graph.</li>
 <li><code>GateConfig</code> / <code>ThresholdEvaluator</code> — quality gates.</li>
 <li><code>arch/</code> — <code>ArchSpec</code>, <code>ArchSpecLoader</code>, <code>ArchChecker</code> (YAML-driven conformance).</li>
 <li><code>MetricsExport</code> — the JSON envelope.</li>
 </ul>
 </li>
-<li><code>application</code> — <code>SpringBootPackageScanner</code> orchestrates a scan.</li>
+<li><code>application</code> — <code>AnalysisService</code> orchestrates a scan (the single facade for both the CLI and web).</li>
 <li><code>cli</code> — <code>CliMain</code> wires the POJOs by hand and runs the headless scan.</li>
 <li><code>config</code> — <code>Defaults</code> (exclusion lists + default gate config).</li>
 </ul>

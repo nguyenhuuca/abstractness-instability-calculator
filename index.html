@@ -1253,12 +1253,11 @@ idea of <em>application module packages</em> — the direct sub-packages of the 
 </ul>
 <h2 id="how-a-scan-works">How a scan works<a class="headerlink" href="#how-a-scan-works" title="Permanent link">&para;</a></h2>
 <pre class="mermaid"><code>flowchart LR
-    A[Web Controller / CLI] --&gt; B[SpringBootPackageScanner]
-    B --&gt; C[PackageLocator]
-    B --&gt; D[PackageMetricsCalculator]
-    C --&gt; E[JavaClassAnalyzer]
-    D --&gt; E
-    E --&gt;|reads compiled .class bytecode via ASM| F[(Per-package metrics&lt;br/&gt;A, I, D, Ce, Ca)]</code></pre>
+    A[Web Controller / CLI] --&gt; B[AnalysisService]
+    B --&gt; C[ProjectModelBuilder]
+    C --&gt;|one ASM pass over .class files| D[ProjectModel]
+    D --&gt; E[PackageMetricsCalculator]
+    E --&gt; F[(Per-package metrics&lt;br/&gt;A, I, D, Ce, Ca)]</code></pre>
 <p>The analyzer reads <strong>compiled <code>.class</code> bytecode</strong> (via ASM), so the target project must be built first.</p>
 <h2 id="where-to-next">Where to next<a class="headerlink" href="#where-to-next" title="Permanent link">&para;</a></h2>
 <ul>
