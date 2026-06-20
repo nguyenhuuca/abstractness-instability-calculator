@@ -10,9 +10,9 @@ Context — there are three lists, all bound by `InstabilityCalculatorProperties
 - `external-packages` — third-party library prefixes (e.g. `org.springframework.`, `com.fasterxml.`)
 - `basic-types` — primitive and `java.lang.*` type names
 
-A dependency matching an *active* list is excluded from Ce/Ca coupling counts.
+A dependency matching an *enabled* list is excluded from Ce/Ca coupling counts.
 
-**Important gotcha:** each list has a `disabled` flag whose meaning is inverted in the code — the filter is only applied when `disabled: true`. So `disabled: true` = "this exclusion list is ON". Do not flip it to enable filtering.
+**Flag:** each list has an `enabled` flag (default `true`); the filter is applied only when `enabled: true`. Set `enabled: false` to turn a list off.
 
 Steps:
 1. Parse `$ARGUMENTS`: the first token is the value to add; an optional second token (`native`/`external`/`basic`) picks the list. If no list is given, infer it — package prefixes ending in `.` go to `external-packages` (or `native-packages` for JDK namespaces like `java.`/`jdk.`/`sun.`), and bare type names go to `basic-types`.

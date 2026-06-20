@@ -14,7 +14,7 @@ This repo is a Spring Boot web app that computes Robert Martin's package metrics
 The plan must state:
 1. **Goal** — what feature/behaviour will exist after the change.
 2. **Layers & files** — exactly which files you'll touch (use the table in step 1 to place them).
-3. **Approach** — the key design decisions and how it fits the existing flow `Controller → SpringBootPackageScanner → PackageLocator + PackageMetricsCalculator → JavaClassAnalyzer`.
+3. **Approach** — the key design decisions and how it fits the existing flow `Controller / CLI → AnalysisService → ProjectModelBuilder (one ASM pass → ProjectModel) → PackageMetricsCalculator`.
 4. **Tests** — which tests you'll add or update.
 5. **Verification** — how you'll prove it works (`/demo`, `/analyze`, manual UI check).
 
@@ -26,9 +26,9 @@ Code is layered under `com.example.softwaremetrics` (`web`'s `config`/`infrastru
 
 | Kind of change | Layer / file |
 |---|---|
-| New or modified metric, counting, or filtering logic | `domain` — `PackageMetricsCalculator`, `JavaClassAnalyzer`, `PackageMetrics` |
-| Finding packages / traversing the project | `domain` — `PackageLocator`, `ProjectPathTraverser` |
-| Scan orchestration / new high-level operation | `application` — `SpringBootPackageScanner` |
+| New or modified metric, counting, or filtering logic | `domain` — `PackageMetricsCalculator`, `MetricsAggregator`, `bytecode/ProjectModelBuilder`, `PackageMetrics` |
+| Finding the root package / traversing the project | `domain` — `resolve/` (`RootPackageResolver` chain, `SpringBootAnnotationScanner`), `ProjectPathTraverser` |
+| Scan orchestration / new high-level operation | `application` — `AnalysisService` |
 | New HTTP endpoint or view wiring | `infrastructure` — `PackageScannerController` |
 | Chart, package-details, dependency graph, styling | `src/main/resources/templates/` (`index.html`, `graph.html`) |
 | New tunable list/threshold | `application.yaml` + `InstabilityCalculatorProperties` |
@@ -40,13 +40,13 @@ Domain classes must stay free of web/Spring-MVC types.
 - Constructor injection (not field `@Autowired`); annotate beans with `@Component`.
 - Keep the metric formulas intact unless the task is explicitly about them: `I = Ce/(Ce+Ca)`, `A = abstract/total`, `D = |A+I−1|`, each guarding division by zero.
 - Remember the bytecode contract: never switch metric extraction to source parsing; the target must be compiled.
-- New exclusion entries go in `application.yaml` — the `disabled` flag is inverted (`disabled: true` means the list is ON). See `/add-exclusion`.
+- New exclusion entries go in `application.yaml` — each list's `enabled` flag defaults to `true`; set `enabled: false` to turn a list off. See `/add-exclusion`.
 - For UI work, preserve the dark-theme CSS variables and the element IDs the htmx/Chart.js/D3 scripts rely on (`#result`, `#tabContainer`, `#packageSelect`, `metricsChart`, …).
 
 ## 3. Add or update tests
 
 Every behavioural change needs test coverage:
-- Domain logic → focused unit test (`PackageMetricsCalculatorTest`, `JavaClassAnalyzerTest`).
+- Domain logic → focused unit test (`PackageMetricsCalculatorTest`, `ProjectModelDerivedViewsTest`).
 - Endpoint/flow → extend `PackageScannerControllerIT` (`@SpringBootTest` + MockMvc, builds a synthetic project in a `@TempDir`).
 
 If you change counting, update the calculator AND its test together.

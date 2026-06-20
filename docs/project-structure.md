@@ -15,14 +15,14 @@ flowchart TD
 Plain Java (no Spring); dependencies are only ASM, Jackson, slf4j, and snakeyaml.
 
 - `domain` — the analysis core:
-    - `JavaClassAnalyzer` — reads `.class` bytecode (ASM) to extract dependencies and class counts.
-    - `PackageLocator` / `ProjectPathTraverser` — find the main package; `ModuleResolver` maps each class to its module package at the configured granularity (`analyze.depth` / `analyze.expand`).
-    - `PackageMetricsCalculator` / `PackageMetrics` — aggregate into per-package A/I/D, Ce/Ca.
+    - `bytecode/ProjectModelBuilder` — reads `.class` bytecode (ASM) in a single pass into a `ProjectModel` (dependencies, class counts, complexity, type/method refs).
+    - `resolve/` — the `RootPackageResolver` chain (`Explicit` → `SpringBoot` → `CommonPrefix`, the Spring-Boot step backed by `SpringBootAnnotationScanner`) finds the root package; `ProjectPathTraverser` is a `Files.walk` wrapper; `ModuleResolver` maps each class to its module package at the configured granularity (`analyze.depth` / `analyze.expand`).
+    - `PackageMetricsCalculator` / `MetricsAggregator` / `PackageMetrics` — aggregate the model into per-package A/I/D, Ce/Ca.
     - `CycleDetector` — Tarjan SCC over the package graph.
     - `GateConfig` / `ThresholdEvaluator` — quality gates.
     - `arch/` — `ArchSpec`, `ArchSpecLoader`, `ArchChecker` (YAML-driven conformance).
     - `MetricsExport` — the JSON envelope.
-- `application` — `SpringBootPackageScanner` orchestrates a scan.
+- `application` — `AnalysisService` orchestrates a scan (the single facade for both the CLI and web).
 - `cli` — `CliMain` wires the POJOs by hand and runs the headless scan.
 - `config` — `Defaults` (exclusion lists + default gate config).
 

@@ -23,12 +23,11 @@ idea of *application module packages* — the direct sub-packages of the package
 
 ```mermaid
 flowchart LR
-    A[Web Controller / CLI] --> B[SpringBootPackageScanner]
-    B --> C[PackageLocator]
-    B --> D[PackageMetricsCalculator]
-    C --> E[JavaClassAnalyzer]
-    D --> E
-    E -->|reads compiled .class bytecode via ASM| F[(Per-package metrics<br/>A, I, D, Ce, Ca)]
+    A[Web Controller / CLI] --> B[AnalysisService]
+    B --> C[ProjectModelBuilder]
+    C -->|one ASM pass over .class files| D[ProjectModel]
+    D --> E[PackageMetricsCalculator]
+    E --> F[(Per-package metrics<br/>A, I, D, Ce, Ca)]
 ```
 
 The analyzer reads **compiled `.class` bytecode** (via ASM), so the target project must be built first.
