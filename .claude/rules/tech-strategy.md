@@ -83,9 +83,17 @@ There is no separate frontend build pipeline (no npm/Vite/webpack) — templates
 | Error handling | `IllegalArgumentException`/`IllegalStateException` → `graph :: error` fragment (web) or `error` JSON field / exit code `2` (CLI) |
 | CLI exit codes | `0` passed, `1` gate violated, `2` scan error |
 
+## Design Philosophy
+
+Design principles (deep modules, information hiding, pull complexity downwards, define errors out of
+existence, strategic over tactical) live in **`design-philosophy.md`** — apply them when designing new
+modules, refactors, or API shapes. The Prohibited Patterns below enforce the ones with teeth.
+
 ## Prohibited Patterns
 
 - ❌ No source-code parsing for metrics — the analyzer must only read compiled `.class` bytecode (ASM)
+- ❌ No shallow modules or pass-through methods that merely forward to another layer without adding abstraction (see `design-philosophy.md`)
+- ❌ No leaking one design decision across modules — e.g. bytecode/ASM details outside `domain.bytecode`, metric formulas outside the calculator
 - ❌ No field `@Autowired` — use constructor injection
 - ❌ No domain classes depending on Spring/web-MVC types — keep `domain`/`application` Spring-free
 - ❌ No breaking changes to the `MetricsExport` JSON shape — additive fields only, unless the change is explicitly about the contract
