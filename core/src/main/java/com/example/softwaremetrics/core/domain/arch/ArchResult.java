@@ -11,7 +11,7 @@ public record ArchResult(String specName, boolean compliant, List<Violation> vio
     /**
      * A single architecture-rule breach.
      *
-     * @param type    one of {@code forbiddenDependency}, {@code naming}, {@code cycle}
+     * @param type    one of {@code forbiddenDependency}, {@code naming}, {@code cycle}, {@code unmatched}
      * @param from    source component (or class, for naming)
      * @param to      target component (or null)
      * @param message human-readable description

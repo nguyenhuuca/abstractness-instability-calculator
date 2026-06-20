@@ -7,7 +7,6 @@ import com.example.softwaremetrics.core.domain.ClassInfo;
 import com.example.softwaremetrics.core.domain.CycleDetector;
 import com.example.softwaremetrics.core.domain.GateResult;
 import com.example.softwaremetrics.core.domain.InstabilityCalculatorProperties;
-import com.example.softwaremetrics.core.domain.JavaClassAnalyzer;
 import com.example.softwaremetrics.core.domain.MetricsExport;
 import com.example.softwaremetrics.core.domain.ModuleResolver;
 import com.example.softwaremetrics.core.domain.PackageMetrics;
@@ -26,6 +25,7 @@ import com.example.softwaremetrics.core.domain.resolve.ChainedRootPackageResolve
 import com.example.softwaremetrics.core.domain.resolve.CommonPrefixRootPackageResolver;
 import com.example.softwaremetrics.core.domain.resolve.ExplicitRootPackageResolver;
 import com.example.softwaremetrics.core.domain.resolve.RootPackageResolver;
+import com.example.softwaremetrics.core.domain.resolve.SpringBootAnnotationScanner;
 import com.example.softwaremetrics.core.domain.resolve.SpringBootRootPackageResolver;
 
 import java.nio.file.Path;
@@ -48,7 +48,7 @@ public class AnalysisService {
 
     private final ProjectModelBuilder modelBuilder;
     private final PackageMetricsCalculator metricsCalculator;
-    private final RootPackageResolver springBootResolver;
+    private final RootPackageResolver springBootRootPackageResolver;
     private final CycleDetector cycleDetector;
     private final ThresholdEvaluator thresholdEvaluator;
     private final ArchChecker archChecker;
@@ -56,12 +56,12 @@ public class AnalysisService {
     private final DeadCodeDetector deadCodeDetector;
 
     public AnalysisService(ProjectModelBuilder modelBuilder, PackageMetricsCalculator metricsCalculator,
-                           RootPackageResolver springBootResolver, CycleDetector cycleDetector,
+                           RootPackageResolver springBootRootPackageResolver, CycleDetector cycleDetector,
                            ThresholdEvaluator thresholdEvaluator, ArchChecker archChecker,
                            BannedApiChecker bannedApiChecker, DeadCodeDetector deadCodeDetector) {
         this.modelBuilder = modelBuilder;
         this.metricsCalculator = metricsCalculator;
-        this.springBootResolver = springBootResolver;
+        this.springBootRootPackageResolver = springBootRootPackageResolver;
         this.cycleDetector = cycleDetector;
         this.thresholdEvaluator = thresholdEvaluator;
         this.archChecker = archChecker;
@@ -75,9 +75,9 @@ public class AnalysisService {
      */
     public static AnalysisService create(InstabilityCalculatorProperties exclusions) {
         ProjectModelBuilder builder = new ProjectModelBuilder(new DependencyExclusions(exclusions));
-        JavaClassAnalyzer analyzer = new JavaClassAnalyzer(exclusions);
-        RootPackageResolver springBoot = new SpringBootRootPackageResolver(analyzer, new ProjectPathTraverser());
-        return new AnalysisService(builder, new PackageMetricsCalculator(analyzer), springBoot,
+        RootPackageResolver springBoot =
+                new SpringBootRootPackageResolver(new SpringBootAnnotationScanner(), new ProjectPathTraverser());
+        return new AnalysisService(builder, new PackageMetricsCalculator(), springBoot,
                 new CycleDetector(), new ThresholdEvaluator(), new ArchChecker(),
                 new BannedApiChecker(), new DeadCodeDetector());
     }
@@ -140,7 +140,7 @@ public class AnalysisService {
         RootPackageResolver commonPrefix = p -> CommonPrefixRootPackageResolver.commonPackagePrefix(model.classNames());
         return new ChainedRootPackageResolver(List.of(
                 new ExplicitRootPackageResolver(analyze.rootPackage()),
-                springBootResolver,
+                springBootRootPackageResolver,
                 commonPrefix)).resolve(projectPath);
     }
 

@@ -66,6 +66,13 @@ public final class CheckConfigLoader {
         }
 
         // 3. CLI flags (highest precedence)
+        architecture = applyCliOverrides(gates, architecture, cli);
+
+        return new CheckConfig(gates.toConfig(), architecture, bannedApis, deadCodeEnabled, analyze);
+    }
+
+    /** Applies CLI flag overrides onto the gates (mutated in place) and returns the effective arch spec. */
+    private static ArchSpec applyCliOverrides(GateProperties gates, ArchSpec architecture, Overrides cli) {
         Overrides o = (cli == null) ? Overrides.none() : cli;
         if (o.failOnDistance() != null) {
             gates.getMaxPackageDistance().setEnabled(true);
@@ -75,10 +82,9 @@ public final class CheckConfigLoader {
             gates.getNoCycles().setEnabled(true);
         }
         if (o.archRef() != null && !o.archRef().isBlank()) {
-            architecture = ArchSpecLoader.load(o.archRef());
+            return ArchSpecLoader.load(o.archRef());
         }
-
-        return new CheckConfig(gates.toConfig(), architecture, bannedApis, deadCodeEnabled, analyze);
+        return architecture;
     }
 
     private static AnalyzeConfig analyzeFrom(Map<String, Object> section) {
@@ -157,18 +163,17 @@ public final class CheckConfigLoader {
     }
 
     private static BannedApiRule toRule(Map<String, Object> rm) {
-        BannedApiRule.Kind kind;
-        String target;
-        if (rm.get("method") != null) {
-            kind = BannedApiRule.Kind.METHOD;
-            target = String.valueOf(rm.get("method"));
-        } else if (rm.get("class") != null) {
-            kind = BannedApiRule.Kind.CLASS;
-            target = String.valueOf(rm.get("class"));
-        } else if (rm.get("package") != null) {
-            kind = BannedApiRule.Kind.PACKAGE;
-            target = String.valueOf(rm.get("package"));
-        } else {
+        BannedApiRule.Kind kind = null;
+        String target = null;
+        for (BannedApiRule.Kind k : BannedApiRule.Kind.values()) {
+            Object value = rm.get(k.yamlKey());
+            if (value != null) {
+                kind = k;
+                target = String.valueOf(value);
+                break;
+            }
+        }
+        if (kind == null) {
             throw new IllegalArgumentException("banned-apis rule must have one of: class, method, package");
         }
         String message = rm.get("message") != null ? String.valueOf(rm.get("message")) : null;
@@ -197,7 +202,10 @@ public final class CheckConfigLoader {
     private static Map<String, Object> parse(Path file) {
         try (InputStream in = Files.newInputStream(file)) {
             Object root = new Yaml().load(in);
-            if (root != null && !(root instanceof Map)) {
+            if (root == null) {
+                return Map.of(); // empty/blank file: no sections, all defaults apply
+            }
+            if (!(root instanceof Map)) {
                 throw new IllegalArgumentException(file.getFileName() + " must be a YAML mapping");
             }
             return asMap(root);

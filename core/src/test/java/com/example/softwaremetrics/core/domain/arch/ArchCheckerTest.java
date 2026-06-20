@@ -113,6 +113,35 @@ class ArchCheckerTest {
     }
 
     @Test
+    void unmatchedClassIgnoredByDefault() {
+        // ignoreUnmatched = true → a class matching no component produces no violation.
+        ArchSpec spec = new ArchSpec("Layered", layers(),
+                Map.of(), Set.of(), Map.of(), true, false);
+
+        ArchResult result = checker.check(spec, graph("a.other.Mystery", List.of()));
+
+        assertThat(result.compliant()).isTrue();
+        assertThat(result.violations()).isEmpty();
+    }
+
+    @Test
+    void unmatchedClassFlaggedWhenIgnoreUnmatchedFalse() {
+        // ignoreUnmatched = false → a class matching no component is reported.
+        ArchSpec spec = new ArchSpec("Layered", layers(),
+                Map.of(), Set.of(), Map.of(), false, false);
+
+        ArchResult result = checker.check(spec, graph(
+                "a.other.Mystery", List.of(),       // unmatched → violation
+                "a.web.UserController", List.of())); // matched → fine
+
+        assertThat(result.compliant()).isFalse();
+        assertThat(result.violations())
+                .filteredOn(v -> v.type().equals("unmatched"))
+                .singleElement()
+                .satisfies(v -> assertThat(v.from()).isEqualTo("a.other.Mystery"));
+    }
+
+    @Test
     void componentCycleDetectedWhenForbidden() {
         ArchSpec spec = new ArchSpec("Cycle",
                 List.of(comp("A", ".*\\.a\\..*"), comp("B", ".*\\.b\\..*")),

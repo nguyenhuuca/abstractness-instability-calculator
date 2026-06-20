@@ -1,5 +1,9 @@
 package com.example.softwaremetrics.core.domain;
 
+import com.example.softwaremetrics.core.domain.bytecode.DependencyExclusions;
+import com.example.softwaremetrics.core.domain.bytecode.ProjectModelBuilder;
+import com.example.softwaremetrics.core.domain.model.ProjectModel;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -25,10 +29,12 @@ class PackageMetricsCalculatorTest {
     Path tempDir;
 
     private PackageMetricsCalculator calculator;
+    private ProjectModelBuilder modelBuilder;
 
     @BeforeEach
     void setUp() {
-        calculator = new PackageMetricsCalculator(new JavaClassAnalyzer(TestProperties.defaults()));
+        calculator = new PackageMetricsCalculator();
+        modelBuilder = new ProjectModelBuilder(new DependencyExclusions(TestProperties.defaults()));
         logger.info("Set up PackageMetricsCalculator for testing");
     }
 
@@ -39,8 +45,9 @@ class PackageMetricsCalculatorTest {
         createMockProjectStructure();
 
         // main package = com.example → modules are its sub-packages: service, model.
+        ProjectModel projectModel = modelBuilder.build(tempDir);
         Map<String, PackageMetrics> metrics =
-                calculator.calculateMetrics(tempDir, new ModuleResolver("com.example", 1, Set.of()));
+                calculator.calculateMetrics(projectModel, new ModuleResolver("com.example", 1, Set.of()));
 
         logger.debug("Calculated metrics: {}", metrics);
 

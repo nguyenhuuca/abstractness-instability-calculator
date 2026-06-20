@@ -8,7 +8,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class ProjectPathTraverser {
 
@@ -19,21 +18,9 @@ public class ProjectPathTraverser {
         try (var walk = Files.walk(directoryPath)) {
             return walk.filter(Files::isRegularFile)
                     .filter(p -> p.toString().endsWith(".java"))
-                    .collect(Collectors.toList());
+                    .toList();
         } catch (IOException e) {
             logger.error("Error finding Java files in directory: {}", directoryPath, e);
-            return Collections.emptyList();
-        }
-    }
-
-    public List<Path> findPackages(Path directoryPath) {
-        logger.debug("Finding packages in directory: {}", directoryPath);
-        try (var walk = Files.walk(directoryPath)) {
-            return walk
-                    .filter(Files::isDirectory)
-                    .collect(Collectors.toList());
-        } catch (IOException e) {
-            logger.error("Error finding Java packages in directory: {}", directoryPath, e);
             return Collections.emptyList();
         }
     }

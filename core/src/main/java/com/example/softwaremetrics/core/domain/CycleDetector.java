@@ -43,14 +43,17 @@ public class CycleDetector {
 
     /** package -> packages it depends on (edges only between distinct module packages). */
     private Map<String, List<String>> buildPackageGraph(Map<String, PackageMetrics> metrics) {
-        Set<String> packages = metrics.keySet();
+        // Sort packages longest-first once, so owningPackage returns on its first (= longest) match.
+        List<String> packagesByLengthDesc = metrics.keySet().stream()
+                .sorted(Comparator.comparingInt(String::length).reversed())
+                .toList();
         Map<String, List<String>> graph = new HashMap<>();
-        for (String pkg : packages) {
+        for (String pkg : metrics.keySet()) {
             Set<String> targets = new LinkedHashSet<>();
             List<String> efferent = metrics.get(pkg).getEfferentDependencies();
             if (efferent != null) {
                 for (String dependencyClass : efferent) {
-                    String target = owningPackage(dependencyClass, packages);
+                    String target = owningPackage(dependencyClass, packagesByLengthDesc);
                     if (target != null && !target.equals(pkg)) {
                         targets.add(target);
                     }
@@ -61,15 +64,18 @@ public class CycleDetector {
         return graph;
     }
 
-    /** Finds the module package that owns the given class name (longest matching prefix). */
-    private String owningPackage(String className, Set<String> packages) {
-        String best = null;
-        for (String pkg : packages) {
-            if (className.startsWith(pkg + ".") && (best == null || pkg.length() > best.length())) {
-                best = pkg;
+    /**
+     * Finds the module package that owns the given class name (longest matching prefix). Expects
+     * {@code packagesByLengthDesc} sorted by descending length, so the first prefix match is the
+     * longest.
+     */
+    private String owningPackage(String className, List<String> packagesByLengthDesc) {
+        for (String pkg : packagesByLengthDesc) {
+            if (className.startsWith(pkg + ".")) {
+                return pkg;
             }
         }
-        return best;
+        return null;
     }
 
     /** Tarjan's strongly-connected-components algorithm (recursive; package graphs are small). */

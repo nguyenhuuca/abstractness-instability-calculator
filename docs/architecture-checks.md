@@ -66,7 +66,7 @@ options:
 | `access` | no allow-list (subject only to `forbidden`) |
 | `forbidden` | none |
 | `naming` | none |
-| `options.ignoreUnmatched` | `true` (classes matching no component are skipped) |
+| `options.ignoreUnmatched` | `true` (classes matching no component are skipped). Set to `false` to flag any first-party class that matches no component as an `unmatched` violation. |
 | `options.forbidCycles` | `false` |
 
 ## Output

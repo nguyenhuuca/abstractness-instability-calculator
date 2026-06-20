@@ -31,7 +31,12 @@ public class ArchChecker {
             String srcClass = entry.getKey();
             String srcComp = spec.componentOf(srcClass);
             if (srcComp == null) {
-                continue; // unmatched source: nothing to enforce (ignoreUnmatched applies)
+                // Unmatched first-party class: flagged only when the spec opts out of ignoreUnmatched.
+                if (!spec.ignoreUnmatched()) {
+                    violations.add(new ArchResult.Violation("unmatched", srcClass, null,
+                            String.format("Class '%s' does not match any architecture component", srcClass)));
+                }
+                continue;
             }
 
             checkNaming(spec, srcComp, srcClass, violations);

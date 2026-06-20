@@ -3,9 +3,6 @@ package com.example.softwaremetrics.infrastructure;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -18,7 +15,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,7 +36,7 @@ class PackageScannerE2EIT {
 
     @BeforeEach
     void setUp() throws IOException {
-        createTestProjectStructure(tempDir);
+        TestProjectFixtures.createTestProjectStructure(tempDir);
     }
 
     // 1. GET / — index page contains all required form elements
@@ -146,7 +142,7 @@ class PackageScannerE2EIT {
     // 9. POST /scan on a cyclic project — HTML shows the cycle banner
     @Test
     void scanCyclicProjectRendersCycleBanner(@TempDir Path cyclicDir) throws IOException {
-        createCyclicProjectStructure(cyclicDir);
+        TestProjectFixtures.createCyclicProjectStructure(cyclicDir);
 
         ResponseEntity<String> response = postScan(cyclicDir.toString(), "");
 
@@ -157,7 +153,7 @@ class PackageScannerE2EIT {
     // 10. GET /api/metrics on a cyclic project — JSON cycles array lists both packages
     @Test
     void apiMetricsCyclicProjectReturnsCyclesInJson(@TempDir Path cyclicDir) throws IOException {
-        createCyclicProjectStructure(cyclicDir);
+        TestProjectFixtures.createCyclicProjectStructure(cyclicDir);
 
         ResponseEntity<String> response = restTemplate.getForEntity(
                 "/api/metrics?path={path}", String.class, cyclicDir.toString());
@@ -203,85 +199,5 @@ class PackageScannerE2EIT {
         form.add("path", path);
         form.add("arch", arch);
         return restTemplate.postForEntity("/scan", new HttpEntity<>(form, headers), String.class);
-    }
-
-    private void createTestProjectStructure(Path projectRoot) throws IOException {
-        Path mainAppPath = projectRoot.resolve("src/main/java/com/example/TestApplication.java");
-        Files.createDirectories(mainAppPath.getParent());
-        Files.writeString(mainAppPath, """
-                package com.example;
-                import org.springframework.boot.SpringApplication;
-                import org.springframework.boot.autoconfigure.SpringBootApplication;
-                @SpringBootApplication
-                public class TestApplication {
-                    public static void main(String[] args) {
-                        SpringApplication.run(TestApplication.class, args);
-                    }
-                }
-                """);
-        writeCompiledClass(
-                projectRoot.resolve("target/classes/com/example/subpackage/TestClass.class"),
-                "com/example/subpackage/TestClass");
-    }
-
-    private void createCyclicProjectStructure(Path projectRoot) throws IOException {
-        Path mainApp = projectRoot.resolve("src/main/java/com/example/CyclicTestApp.java");
-        Files.createDirectories(mainApp.getParent());
-        Files.writeString(mainApp, """
-                package com.example;
-                import org.springframework.boot.autoconfigure.SpringBootApplication;
-                @SpringBootApplication
-                public class CyclicTestApp {}
-                """);
-        writeCyclicClass(
-                projectRoot.resolve("target/classes/com/example/domain/DomainClass.class"),
-                "com/example/domain/DomainClass",
-                "getService", "()Lcom/example/service/ServiceClass;");
-        writeCyclicClass(
-                projectRoot.resolve("target/classes/com/example/service/ServiceClass.class"),
-                "com/example/service/ServiceClass",
-                "getDomain", "()Lcom/example/domain/DomainClass;");
-    }
-
-    private void writeCompiledClass(Path classFile, String internalName) throws IOException {
-        ClassWriter cw = new ClassWriter(0);
-        cw.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC, internalName, null, "java/lang/Object", null);
-        emitDefaultConstructor(cw);
-        MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, "testMethod", "()V", null, null);
-        mv.visitCode();
-        mv.visitInsn(Opcodes.RETURN);
-        mv.visitMaxs(0, 1);
-        mv.visitEnd();
-        writeClassToFile(cw, classFile);
-    }
-
-    private void writeCyclicClass(Path classFile, String internalName,
-                                   String methodName, String methodDescriptor) throws IOException {
-        ClassWriter cw = new ClassWriter(0);
-        cw.visit(Opcodes.V1_8, Opcodes.ACC_PUBLIC, internalName, null, "java/lang/Object", null);
-        emitDefaultConstructor(cw);
-        MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, methodName, methodDescriptor, null, null);
-        mv.visitCode();
-        mv.visitInsn(Opcodes.ACONST_NULL);
-        mv.visitInsn(Opcodes.ARETURN);
-        mv.visitMaxs(1, 1);
-        mv.visitEnd();
-        writeClassToFile(cw, classFile);
-    }
-
-    private void emitDefaultConstructor(ClassWriter cw) {
-        MethodVisitor ctor = cw.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
-        ctor.visitCode();
-        ctor.visitVarInsn(Opcodes.ALOAD, 0);
-        ctor.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
-        ctor.visitInsn(Opcodes.RETURN);
-        ctor.visitMaxs(1, 1);
-        ctor.visitEnd();
-    }
-
-    private void writeClassToFile(ClassWriter cw, Path classFile) throws IOException {
-        cw.visitEnd();
-        Files.createDirectories(classFile.getParent());
-        Files.write(classFile, cw.toByteArray());
     }
 }

@@ -38,7 +38,8 @@ public class InstabilityCalculatorProperties {
     }
 
     public static class PackageListConfig {
-        private boolean disabled = true;
+        /** When {@code true} (the default) this exclusion list is applied; when {@code false} it is ignored. */
+        private boolean enabled = true;
 
         public List<String> getValues() {
             return values;
@@ -50,12 +51,12 @@ public class InstabilityCalculatorProperties {
 
         private List<String> values;
 
-        public boolean isDisabled() {
-            return disabled;
+        public boolean isEnabled() {
+            return enabled;
         }
 
-        public void setDisabled(boolean disabled) {
-            this.disabled = disabled;
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
         }
     }
 }

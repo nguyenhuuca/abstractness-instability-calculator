@@ -21,7 +21,13 @@ public class CommonPrefixRootPackageResolver implements RootPackageResolver {
 
     @Override
     public String resolve(Path projectPath) {
-        return commonPackagePrefix(modelBuilder.build(projectPath).classNames());
+        try {
+            return commonPackagePrefix(modelBuilder.build(projectPath).classNames());
+        } catch (IllegalStateException e) {
+            // I/O failure reading the project: this strategy can't determine a root — defer to the
+            // chain by returning null (matching the other resolvers' "can't decide" contract).
+            return null;
+        }
     }
 
     /** The longest package prefix common to all class names, or {@code null} if there is none. */

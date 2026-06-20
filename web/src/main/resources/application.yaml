@@ -8,7 +8,7 @@ instability-calculator:
   # Dependency-exclusion lists: classes matching these are not counted as coupling.
   # (Quality gates apply to the CLI/CI mode, which uses code defaults — see core's Defaults.)
   native-packages:
-    disabled: true
+    enabled: true
     values:
       - java.
       - javax.
@@ -24,7 +24,7 @@ instability-calculator:
       - org.relaxng.
 
   external-packages:
-    disabled: true
+    enabled: true
     values:
       - org.springframework.
       - org.apache.
@@ -43,7 +43,7 @@ instability-calculator:
       - org.json.
 
   basic-types:
-    disabled: true
+    enabled: true
     values:
       - boolean
       - byte
@@ -68,3 +68,7 @@ instability-calculator:
       - java.lang.Class
 server:
   port: 8081
+
+app:
+  # Filtered from the Maven project version at build time (Spring Boot resource filtering).
+  tool-version: @project.version@

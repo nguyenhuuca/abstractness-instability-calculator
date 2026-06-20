@@ -21,12 +21,12 @@ import java.util.Map;
 public class PackageScannerController {
 
     private final AnalysisService analysisService;
+    private final String toolVersion;
 
-    @Value("${app.tool-version:1.0-SNAPSHOT}")
-    private String toolVersion;
-
-    public PackageScannerController(AnalysisService analysisService) {
+    public PackageScannerController(AnalysisService analysisService,
+                                    @Value("${app.tool-version:dev}") String toolVersion) {
         this.analysisService = analysisService;
+        this.toolVersion = toolVersion;
     }
 
     /** Builds a web request: project path + optional architecture override, gates left out of the JSON. */

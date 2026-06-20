@@ -11,7 +11,18 @@ import java.util.regex.Pattern;
 public record BannedApiRule(Kind kind, String target, String message, List<Pattern> allowedIn) {
 
     public enum Kind {
-        CLASS, METHOD, PACKAGE
+        CLASS("class"), METHOD("method"), PACKAGE("package");
+
+        private final String yamlKey;
+
+        Kind(String yamlKey) {
+            this.yamlKey = yamlKey;
+        }
+
+        /** The {@code aic-check.yaml} key that selects this rule kind (e.g. {@code "method"}). */
+        public String yamlKey() {
+            return yamlKey;
+        }
     }
 
     public boolean isAllowedIn(String fqcn) {

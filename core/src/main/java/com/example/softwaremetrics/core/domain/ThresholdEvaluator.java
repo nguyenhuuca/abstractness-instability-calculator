@@ -18,57 +18,76 @@ public class ThresholdEvaluator {
         List<GateResult.Violation> violations = new ArrayList<>();
 
         if (cfg.maxPackageDistanceEnabled()) {
-            for (PackageMetrics m : metrics.values()) {
-                if (m.getDistance() > cfg.maxPackageDistance()) {
-                    violations.add(new GateResult.Violation(
-                            "maxPackageDistance", m.getPackageName(), m.getDistance(), cfg.maxPackageDistance(),
-                            String.format("Package '%s' distance %.2f exceeds max %.2f",
-                                    m.getPackageName(), m.getDistance(), cfg.maxPackageDistance())));
-                }
-            }
+            checkMaxPackageDistance(metrics, cfg, violations);
         }
-
         if (cfg.forbiddenZonesEnabled()) {
-            for (PackageMetrics m : metrics.values()) {
-                String zone = zoneOf(m);
-                if (zone != null) {
-                    violations.add(new GateResult.Violation(
-                            "forbiddenZone", m.getPackageName(), m.getDistance(), 0.0,
-                            String.format("Package '%s' is in the %s (I=%.2f, A=%.2f)",
-                                    m.getPackageName(), zone, m.getInstability(), m.getAbstractness())));
-                }
-            }
+            checkForbiddenZones(metrics, violations);
         }
-
         if (cfg.maxAverageDistanceEnabled()) {
-            double avg = averageDistance(metrics);
-            if (avg > cfg.maxAverageDistance()) {
-                violations.add(new GateResult.Violation(
-                        "maxAverageDistance", null, avg, cfg.maxAverageDistance(),
-                        String.format("Average distance %.2f exceeds max %.2f", avg, cfg.maxAverageDistance())));
-            }
+            checkMaxAverageDistance(metrics, cfg, violations);
         }
-
         if (cfg.maxComplexityEnabled()) {
-            for (PackageMetrics m : metrics.values()) {
-                if (m.getMaxComplexity() > cfg.maxComplexity()) {
-                    violations.add(new GateResult.Violation(
-                            "maxComplexity", m.getPackageName(), m.getMaxComplexity(), cfg.maxComplexity(),
-                            String.format("Package '%s' has a method (%s) with cyclomatic complexity %d > %d",
-                                    m.getPackageName(), m.getMostComplexMethod(), m.getMaxComplexity(), cfg.maxComplexity())));
-                }
-            }
+            checkMaxComplexity(metrics, cfg, violations);
         }
-
         if (cfg.noCyclesEnabled() && cycles != null) {
-            for (List<String> cycle : cycles) {
-                violations.add(new GateResult.Violation(
-                        "circularDependency", null, cycle.size(), 0.0,
-                        "Circular dependency between packages: " + String.join(" -> ", cycle)));
-            }
+            checkNoCycles(cycles, violations);
         }
 
         return new GateResult(violations.isEmpty(), violations);
+    }
+
+    private void checkMaxPackageDistance(Map<String, PackageMetrics> metrics, GateConfig cfg,
+                                         List<GateResult.Violation> violations) {
+        for (PackageMetrics m : metrics.values()) {
+            if (m.getDistance() > cfg.maxPackageDistance()) {
+                violations.add(new GateResult.Violation(
+                        "maxPackageDistance", m.getPackageName(), m.getDistance(), cfg.maxPackageDistance(),
+                        String.format("Package '%s' distance %.2f exceeds max %.2f",
+                                m.getPackageName(), m.getDistance(), cfg.maxPackageDistance())));
+            }
+        }
+    }
+
+    private void checkForbiddenZones(Map<String, PackageMetrics> metrics, List<GateResult.Violation> violations) {
+        for (PackageMetrics m : metrics.values()) {
+            String zone = zoneOf(m);
+            if (zone != null) {
+                violations.add(new GateResult.Violation(
+                        "forbiddenZone", m.getPackageName(), m.getDistance(), 0.0,
+                        String.format("Package '%s' is in the %s (I=%.2f, A=%.2f)",
+                                m.getPackageName(), zone, m.getInstability(), m.getAbstractness())));
+            }
+        }
+    }
+
+    private void checkMaxAverageDistance(Map<String, PackageMetrics> metrics, GateConfig cfg,
+                                         List<GateResult.Violation> violations) {
+        double avg = averageDistance(metrics);
+        if (avg > cfg.maxAverageDistance()) {
+            violations.add(new GateResult.Violation(
+                    "maxAverageDistance", null, avg, cfg.maxAverageDistance(),
+                    String.format("Average distance %.2f exceeds max %.2f", avg, cfg.maxAverageDistance())));
+        }
+    }
+
+    private void checkMaxComplexity(Map<String, PackageMetrics> metrics, GateConfig cfg,
+                                    List<GateResult.Violation> violations) {
+        for (PackageMetrics m : metrics.values()) {
+            if (m.getMaxComplexity() > cfg.maxComplexity()) {
+                violations.add(new GateResult.Violation(
+                        "maxComplexity", m.getPackageName(), m.getMaxComplexity(), cfg.maxComplexity(),
+                        String.format("Package '%s' has a method (%s) with cyclomatic complexity %d > %d",
+                                m.getPackageName(), m.getMostComplexMethod(), m.getMaxComplexity(), cfg.maxComplexity())));
+            }
+        }
+    }
+
+    private void checkNoCycles(List<List<String>> cycles, List<GateResult.Violation> violations) {
+        for (List<String> cycle : cycles) {
+            violations.add(new GateResult.Violation(
+                    "circularDependency", null, cycle.size(), 0.0,
+                    "Circular dependency between packages: " + String.join(" -> ", cycle)));
+        }
     }
 
     private String zoneOf(PackageMetrics m) {

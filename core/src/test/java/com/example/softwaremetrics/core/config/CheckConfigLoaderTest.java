@@ -189,4 +189,18 @@ class CheckConfigLoaderTest {
         assertThat(cfg.analyze().depth()).isEqualTo(1);
         assertThat(cfg.analyze().expand()).isEmpty();
     }
+
+    @Test
+    void emptyFileFallsBackToDefaultsWithoutThrowing(@TempDir Path proj) throws IOException {
+        // A present-but-empty aic-check.yaml must not NPE; it should behave like "no file".
+        writeFile(proj, "aic-check.yaml", "");
+
+        CheckConfig cfg = CheckConfigLoader.resolve(proj, Overrides.none());
+
+        assertThat(cfg.gate().maxPackageDistanceEnabled()).isTrue();
+        assertThat(cfg.architecture()).isNull();
+        assertThat(cfg.bannedApis()).isEmpty();
+        assertThat(cfg.deadCodeEnabled()).isFalse();
+        assertThat(cfg.analyze().depth()).isEqualTo(1);
+    }
 }

@@ -1,6 +1,5 @@
 package com.example.softwaremetrics.core.domain.resolve;
 
-import com.example.softwaremetrics.core.domain.JavaClassAnalyzer;
 import com.example.softwaremetrics.core.domain.ProjectPathTraverser;
 
 import org.slf4j.Logger;
@@ -19,11 +18,11 @@ public class SpringBootRootPackageResolver implements RootPackageResolver {
 
     private static final Logger logger = LoggerFactory.getLogger(SpringBootRootPackageResolver.class);
 
-    private final JavaClassAnalyzer javaClassAnalyzer;
+    private final SpringBootAnnotationScanner scanner;
     private final ProjectPathTraverser projectPathTraverser;
 
-    public SpringBootRootPackageResolver(JavaClassAnalyzer javaClassAnalyzer, ProjectPathTraverser projectPathTraverser) {
-        this.javaClassAnalyzer = javaClassAnalyzer;
+    public SpringBootRootPackageResolver(SpringBootAnnotationScanner scanner, ProjectPathTraverser projectPathTraverser) {
+        this.scanner = scanner;
         this.projectPathTraverser = projectPathTraverser;
     }
 
@@ -36,8 +35,8 @@ public class SpringBootRootPackageResolver implements RootPackageResolver {
         }
         List<Path> javaFiles = projectPathTraverser.findJavaFiles(srcMainJavaPath);
         return javaFiles.stream()
-                .filter(javaClassAnalyzer::containsSpringBootApplication)
-                .map(javaClassAnalyzer::extractPackage)
+                .filter(scanner::containsSpringBootApplication)
+                .map(scanner::extractPackage)
                 .findFirst()
                 .orElse(null);
     }

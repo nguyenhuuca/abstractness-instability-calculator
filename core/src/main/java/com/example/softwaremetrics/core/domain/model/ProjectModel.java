@@ -3,6 +3,7 @@ package com.example.softwaremetrics.core.domain.model;
 import com.example.softwaremetrics.core.domain.ClassInfo;
 import com.example.softwaremetrics.core.domain.bytecode.TypeNames;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -63,7 +64,7 @@ public record ProjectModel(List<ClassDetail> classes) {
      */
     public List<ClassInfo> classInfos(String mainPackage) {
         String prefix = mainPackage + ".";
-        List<ClassInfo> infos = new java.util.ArrayList<>();
+        List<ClassInfo> infos = new ArrayList<>();
         for (ClassDetail c : classes) {
             if (!c.fqcn().startsWith(prefix) || c.inner()) {
                 continue;

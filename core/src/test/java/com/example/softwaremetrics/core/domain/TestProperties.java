@@ -6,8 +6,8 @@ import com.example.softwaremetrics.core.domain.InstabilityCalculatorProperties.P
 
 /**
  * Test helper that builds an {@link InstabilityCalculatorProperties} mirroring the exclusion
- * lists in {@code application.yaml}, so unit tests exercise {@link JavaClassAnalyzer} with the
- * same filtering as production (JDK/native packages and basic types are excluded from coupling).
+ * lists in {@code application.yaml}, so unit tests exercise the same dependency filtering as
+ * production (JDK/native packages and basic types are excluded from coupling).
  */
 final class TestProperties {
 
@@ -34,7 +34,7 @@ final class TestProperties {
 
     private static PackageListConfig config(List<String> values) {
         PackageListConfig cfg = new PackageListConfig();
-        cfg.setDisabled(true); // inverted flag: true means the exclusion list is ACTIVE
+        cfg.setEnabled(true); // this exclusion list is active
         cfg.setValues(values);
         return cfg;
     }

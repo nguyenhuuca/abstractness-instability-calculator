@@ -43,7 +43,7 @@ public final class Defaults {
 
     private static PackageListConfig list(String... values) {
         PackageListConfig cfg = new PackageListConfig();
-        cfg.setDisabled(true); // inverted flag: true means the exclusion list is ACTIVE
+        cfg.setEnabled(true); // this exclusion list is active
         cfg.setValues(List.of(values));
         return cfg;
     }

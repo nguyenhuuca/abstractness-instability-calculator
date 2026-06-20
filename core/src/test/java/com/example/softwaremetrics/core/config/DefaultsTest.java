@@ -30,7 +30,7 @@ class DefaultsTest {
         assertThat(props).isNotNull();
         assertThat(props.getNativePackages()).isNotNull();
         assertThat(props.getNativePackages().getValues()).contains("java.", "javax.", "jakarta.");
-        assertThat(props.getNativePackages().isDisabled()).isTrue(); // "disabled=true" means the filter is ACTIVE
+        assertThat(props.getNativePackages().isEnabled()).isTrue(); // enabled=true means the filter is active
     }
 
     @Test
@@ -39,7 +39,7 @@ class DefaultsTest {
 
         assertThat(props.getExternalPackages().getValues())
                 .contains("org.springframework.", "org.apache.", "com.fasterxml.");
-        assertThat(props.getExternalPackages().isDisabled()).isTrue();
+        assertThat(props.getExternalPackages().isEnabled()).isTrue();
     }
 
     @Test
@@ -48,6 +48,6 @@ class DefaultsTest {
 
         assertThat(props.getBasicTypes().getValues())
                 .contains("java.lang.String", "java.lang.Object", "int", "boolean");
-        assertThat(props.getBasicTypes().isDisabled()).isTrue();
+        assertThat(props.getBasicTypes().isEnabled()).isTrue();
     }
 }

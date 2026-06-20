@@ -76,7 +76,3 @@ Follow these when adding features or making changes so contributions stay consis
 - **Don't break the bytecode contract.** Anything that reads the target project assumes compiled `.class` files — never switch to source parsing for metrics. New exclusion entries go in `application.yaml` (mind the inverted `disabled` flag, above).
 - **Verify end-to-end** for non-trivial changes with `/demo` (scan this repo) or `/analyze <path>` (scan an external project) before committing.
 - **Branch & PR**: branch off `main`, keep commits scoped, and end commit messages with the `Co-Authored-By` trailer. CI (`.github/workflows/ci.yml`) runs `mvn -B package` on JDK 22 — make sure it passes locally.
-
-## Notes
-
-- `JavaClassAnalyzer` currently contains leftover debug code: unconditional `logger.info` calls in `addDependencyIfNotExcluded`, and a no-op `if (topLevelPackage.contains("repo")) logger.info("test")`. Clean these up if touching that file (or run `/clean-debug`).

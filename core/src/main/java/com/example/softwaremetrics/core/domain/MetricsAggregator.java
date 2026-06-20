@@ -4,39 +4,33 @@ import com.example.softwaremetrics.core.domain.model.ClassDetail;
 import com.example.softwaremetrics.core.domain.model.MethodComplexity;
 import com.example.softwaremetrics.core.domain.model.ProjectModel;
 
-import java.util.Map;
-import java.util.Set;
+import java.util.HashSet;
 
 /**
- * Aggregates a {@link ProjectModel} into the per-module raw counts used by
+ * Aggregates a {@link ProjectModel} into the per-module {@link RawModuleMetrics} used by
  * {@link PackageMetricsCalculator}: efferent/afferent class sets, abstract/total class counts and
- * complexity. Modules are assigned by the given {@link ModuleResolver}. This reproduces exactly what
- * the former {@code JavaClassAnalyzer.analyzeClasses} pass computed, just reading the prebuilt model
- * instead of re-walking the filesystem.
+ * complexity. Modules are assigned by the given {@link ModuleResolver}. This reads the prebuilt model
+ * rather than re-walking the filesystem.
  */
 final class MetricsAggregator {
 
     private MetricsAggregator() {
     }
 
-    static void aggregate(ProjectModel model, ModuleResolver resolver,
-                          Map<String, Set<String>> outgoingDependencies,
-                          Map<String, Set<String>> incomingDependencies,
-                          Map<String, Integer> abstractClassCount,
-                          Map<String, Integer> totalClassCount,
-                          Map<String, ComplexityStats> complexity) {
+    static RawModuleMetrics aggregate(ProjectModel model, ModuleResolver resolver) {
+        RawModuleMetrics raw = RawModuleMetrics.empty();
         for (ClassDetail cd : model.classes()) {
             String module = resolver.moduleOf(cd.fqcn());
             if (module == null || cd.builderType() || cd.inner()) {
                 continue;
             }
 
-            totalClassCount.merge(module, 1, Integer::sum);
+            raw.totalClassCount().merge(module, 1, Integer::sum);
             if (cd.abstractType()) {
-                abstractClassCount.merge(module, 1, Integer::sum);
+                raw.abstractClassCount().merge(module, 1, Integer::sum);
             }
 
-            ComplexityStats stats = complexity.computeIfAbsent(module, k -> new ComplexityStats());
+            ComplexityStats stats = raw.complexity().computeIfAbsent(module, k -> new ComplexityStats());
             for (MethodComplexity m : cd.methods()) {
                 stats.add(m.name(), m.complexity());
             }
@@ -47,13 +41,14 @@ final class MetricsAggregator {
                 }
                 String dependencyModule = resolver.moduleOf(dependency);
                 if (!module.equals(dependencyModule)) {
-                    outgoingDependencies.computeIfAbsent(module, k -> new java.util.HashSet<>()).add(dependency);
+                    raw.outgoingDependencies().computeIfAbsent(module, k -> new HashSet<>()).add(dependency);
                     if (dependencyModule != null) {
-                        incomingDependencies.computeIfAbsent(dependencyModule, k -> new java.util.HashSet<>())
+                        raw.incomingDependencies().computeIfAbsent(dependencyModule, k -> new HashSet<>())
                                 .add(cd.fqcn());
                     }
                 }
             }
         }
+        return raw;
     }
 }

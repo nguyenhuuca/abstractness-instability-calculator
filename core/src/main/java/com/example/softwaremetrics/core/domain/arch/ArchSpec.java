@@ -83,18 +83,30 @@ public final class ArchSpec {
     }
 
     /** Builds a spec from a parsed YAML document (see the bundled templates for the schema). */
-    @SuppressWarnings("unchecked")
     public static ArchSpec fromYaml(Map<String, Object> root) {
         if (root == null) {
             throw new IllegalArgumentException("Architecture spec is empty");
         }
         String name = String.valueOf(root.getOrDefault("name", "architecture"));
+        List<Component> components = parseComponents(root.get("components"));
+        Map<String, Set<String>> access = parseAccess(root.get("access"));
+        Set<Edge> forbidden = parseForbidden(root.get("forbidden"));
+        Map<String, Pattern> naming = parseNaming(root.get("naming"));
+        boolean ignoreUnmatched = true;
+        boolean forbidCycles = false;
+        if (root.get("options") instanceof Map<?, ?> opts) {
+            ignoreUnmatched = boolOption(opts.get("ignoreUnmatched"), true);
+            forbidCycles = boolOption(opts.get("forbidCycles"), false);
+        }
+        return new ArchSpec(name, components, access, forbidden, naming, ignoreUnmatched, forbidCycles);
+    }
 
-        List<Component> components = new ArrayList<>();
-        Object compsRaw = root.get("components");
-        if (!(compsRaw instanceof List<?> comps) || comps.isEmpty()) {
+    @SuppressWarnings("unchecked")
+    private static List<Component> parseComponents(Object componentsRaw) {
+        if (!(componentsRaw instanceof List<?> comps) || comps.isEmpty()) {
             throw new IllegalArgumentException("Architecture spec must define at least one component");
         }
+        List<Component> components = new ArrayList<>();
         for (Object o : comps) {
             Map<String, Object> cm = (Map<String, Object>) o;
             String cname = String.valueOf(cm.get("name"));
@@ -107,9 +119,12 @@ public final class ArchSpec {
             }
             components.add(new Component(cname, patterns));
         }
+        return components;
+    }
 
+    private static Map<String, Set<String>> parseAccess(Object accessRaw) {
         Map<String, Set<String>> access = new LinkedHashMap<>();
-        if (root.get("access") instanceof Map<?, ?> am) {
+        if (accessRaw instanceof Map<?, ?> am) {
             for (Map.Entry<?, ?> e : am.entrySet()) {
                 Set<String> targets = new LinkedHashSet<>();
                 for (Object t : asList(e.getValue())) {
@@ -118,28 +133,27 @@ public final class ArchSpec {
                 access.put(String.valueOf(e.getKey()), targets);
             }
         }
+        return access;
+    }
 
+    @SuppressWarnings("unchecked")
+    private static Set<Edge> parseForbidden(Object forbiddenRaw) {
         Set<Edge> forbidden = new LinkedHashSet<>();
-        for (Object o : asList(root.get("forbidden"))) {
+        for (Object o : asList(forbiddenRaw)) {
             Map<String, Object> em = (Map<String, Object>) o;
             forbidden.add(new Edge(String.valueOf(em.get("from")), String.valueOf(em.get("to"))));
         }
+        return forbidden;
+    }
 
+    private static Map<String, Pattern> parseNaming(Object namingRaw) {
         Map<String, Pattern> naming = new LinkedHashMap<>();
-        if (root.get("naming") instanceof Map<?, ?> nm) {
+        if (namingRaw instanceof Map<?, ?> nm) {
             for (Map.Entry<?, ?> e : nm.entrySet()) {
                 naming.put(String.valueOf(e.getKey()), Pattern.compile(String.valueOf(e.getValue())));
             }
         }
-
-        boolean ignoreUnmatched = true;
-        boolean forbidCycles = false;
-        if (root.get("options") instanceof Map<?, ?> opts) {
-            ignoreUnmatched = boolOption(opts.get("ignoreUnmatched"), true);
-            forbidCycles = boolOption(opts.get("forbidCycles"), false);
-        }
-
-        return new ArchSpec(name, components, access, forbidden, naming, ignoreUnmatched, forbidCycles);
+        return naming;
     }
 
     private static List<?> asList(Object value) {

@@ -3,7 +3,7 @@ package com.example.softwaremetrics.core.domain;
 import java.util.Set;
 
 /**
- * Lightweight per-class model produced by {@link JavaClassAnalyzer#analyzeProject} for the dead-code
+ * Lightweight per-class model produced by {@code ProjectModel.classInfos} for the dead-code
  * and banned-API checks.
  *
  * @param fqcn                fully-qualified class name

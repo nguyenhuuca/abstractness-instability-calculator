@@ -26,9 +26,15 @@ import java.util.List;
  */
 public final class CliMain {
 
-    private static final String TOOL_VERSION = "1.0-SNAPSHOT";
+    /** Read from the jar manifest's {@code Implementation-Version} (set at build time); {@code "dev"} when run from classes. */
+    private static final String TOOL_VERSION = resolveToolVersion();
 
     private CliMain() {
+    }
+
+    private static String resolveToolVersion() {
+        String version = CliMain.class.getPackage().getImplementationVersion();
+        return (version != null && !version.isBlank()) ? version : "dev";
     }
 
     public static void main(String[] args) throws Exception {

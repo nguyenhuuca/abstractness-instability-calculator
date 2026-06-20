@@ -115,25 +115,7 @@ public class ProjectModelBuilder {
                 addParameterAnnotationTypes(method.invisibleParameterAnnotations, typeRefs);
             }
             analyzeClassSignature(classNode, dependencies);
-
-            // Superclass, implemented interfaces, field types and annotations are references too.
-            if (classNode.superName != null) {
-                typeRefs.add(Type.getObjectType(classNode.superName).getClassName());
-            }
-            if (classNode.interfaces != null) {
-                for (String itf : classNode.interfaces) {
-                    typeRefs.add(Type.getObjectType(itf).getClassName());
-                }
-            }
-            if (classNode.fields != null) {
-                for (FieldNode field : classNode.fields) {
-                    typeRefs.add(TypeNames.stripArraySuffix(Type.getType(field.desc).getClassName()));
-                    addAnnotationTypes(field.visibleAnnotations, typeRefs);
-                    addAnnotationTypes(field.invisibleAnnotations, typeRefs);
-                }
-            }
-            addAnnotationTypes(classNode.visibleAnnotations, typeRefs);
-            addAnnotationTypes(classNode.invisibleAnnotations, typeRefs);
+            collectClassLevelRefs(classNode, typeRefs);
 
             boolean entryPoint = hasMain || hasEntryAnnotation(classNode);
 
@@ -143,6 +125,27 @@ public class ProjectModelBuilder {
             logger.error("Error reading class file: {}", file, e);
             return null;
         }
+    }
+
+    /** Superclass, implemented interfaces, field types and class-level annotations are references too. */
+    private void collectClassLevelRefs(ClassNode classNode, Set<String> typeRefs) {
+        if (classNode.superName != null) {
+            typeRefs.add(Type.getObjectType(classNode.superName).getClassName());
+        }
+        if (classNode.interfaces != null) {
+            for (String itf : classNode.interfaces) {
+                typeRefs.add(Type.getObjectType(itf).getClassName());
+            }
+        }
+        if (classNode.fields != null) {
+            for (FieldNode field : classNode.fields) {
+                typeRefs.add(TypeNames.stripArraySuffix(Type.getType(field.desc).getClassName()));
+                addAnnotationTypes(field.visibleAnnotations, typeRefs);
+                addAnnotationTypes(field.invisibleAnnotations, typeRefs);
+            }
+        }
+        addAnnotationTypes(classNode.visibleAnnotations, typeRefs);
+        addAnnotationTypes(classNode.invisibleAnnotations, typeRefs);
     }
 
     /** Cyclomatic complexity of a method = 1 + conditional branches + switch cases. */
